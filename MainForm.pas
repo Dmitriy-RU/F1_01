@@ -254,28 +254,23 @@ begin
   begin
     Page := TTabSheet.Create(Self);
     Page.PageControl := FPageControl;
-//    FPageControl.Pag
     Page.Caption := TAB_NAMES[I];
-
-//    LabelControl := TLabel.Create(Page);
-//    LabelControl.Parent := Page;
-//    LabelControl.Left := 20;
-//    LabelControl.Top := 20;
-//    LabelControl.Caption :=
-//      'Редактор раздела "' + TAB_NAMES[I] + '" будет добавлен на следующем этапе.';
-
+    case I  of
+0: begin
 FGeneralEditor := TGeneralInformationEditor.Create(Page);
 FGeneralEditor.Parent := Page;
 FGeneralEditor.Init;
 FGeneralEditor.Align := alClient;
 FGeneralEditor.Bind(FDocument.GeneralInformation);
-
+end;
+1: begin
 FFrequencyBandsEditor := TFrequencyBandsEditor.Create(Page);
 FFrequencyBandsEditor.Parent := Page;
 FFrequencyBandsEditor.Init;
 FFrequencyBandsEditor.Align := alClient;
 FFrequencyBandsEditor.Bind(FDocument.TransmitterFrequencyBands,  FDocument.ReceiverFrequencyBands);
-
+end;
+2: begin
 FEquipmentCompositionEditor :=
   TEquipmentCompositionEditor.Create(Page);
 FEquipmentCompositionEditor.Parent := Page;
@@ -283,41 +278,50 @@ FEquipmentCompositionEditor.Align := alClient;
 FEquipmentCompositionEditor.Bind(
   FDocument.EquipmentComposition
 );
-
+end;
+3: begin
 FTransmitterEditor := TTransmitterEditor.Create(Page);
 FTransmitterEditor.Parent := Page;
 FTransmitterEditor.Align := alClient;
 FTransmitterEditor.Bind(FDocument.Transmitter);
-
+end;
+4: begin
 FReceiverEditor := TReceiverEditor.Create(Page);
 FReceiverEditor.Parent := Page;
 FReceiverEditor.Align := alClient;
 FReceiverEditor.Bind(FDocument.Receiver);
-
-FAntennaEditor := TAntennaEditor.Create(Page);
+end;
+5: begin
+ FAntennaEditor := TAntennaEditor.Create(Page);
 FAntennaEditor.Parent := Page;
 FAntennaEditor.Align := alClient;
 FAntennaEditor.Bind(FDocument.Antennas);
-
+end;
+6: begin
 FFeederEditor := TFeederEditor.Create(Page);
 FFeederEditor.Parent := Page;
 FFeederEditor.Align := alClient;
 FFeederEditor.Bind(FDocument.Feeder);
-
+end;
+7: begin
 FEmcEditor := TEmcEditor.Create(Page);
 FEmcEditor.Parent := Page;
 FEmcEditor.Align := alClient;
 FEmcEditor.Bind(FDocument.EmcInformation);
-
+end;
+8: begin
 FOrganizationsEditor := TOrganizationsEditor.Create(Page);
 FOrganizationsEditor.Parent := Page;
 FOrganizationsEditor.Align := alClient;
-
+end;
+9: begin
 FOrganizationsEditor.Bind(
   FDocument.Customer,
   FDocument.Developer,
   FDocument.Manufacturer
 );
+end;
+    end;
 
 
 end;
