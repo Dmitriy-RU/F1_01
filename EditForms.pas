@@ -45,8 +45,7 @@ type
     procedure UpdateTextField(ATag: Integer; const AValue: string);
 
   public
-    constructor Create(AOwner: TComponent); override;
-
+    procedure Init;
     procedure Bind(AInfo: TGeneralInformation);
   end;
 
@@ -55,11 +54,11 @@ implementation
 uses
   System.SysUtils;
 
-constructor TGeneralInformationEditor.Create(AOwner: TComponent);
+procedure TGeneralInformationEditor.Init;
 var
   Y: Integer;
 begin
-  inherited Create(AOwner);
+//  inherited Create(AOwner);
 
   Align := alClient;
   BorderStyle := bsNone;

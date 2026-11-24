@@ -237,6 +237,7 @@ begin
 //      'Редактор раздела "' + TAB_NAMES[I] + '" будет добавлен на следующем этапе.';
 FGeneralEditor := TGeneralInformationEditor.Create(Page);
 FGeneralEditor.Parent := Page;
+FGeneralEditor.Init;
 FGeneralEditor.Align := alClient;
 FGeneralEditor.Bind(FDocument.GeneralInformation);
 
