@@ -131,6 +131,10 @@
         <DCCReference Include="DataModel.pas"/>
         <DCCReference Include="DataValidation.pas"/>
         <DCCReference Include="EditForms.pas"/>
+        <DCCReference Include="FrequencyBandDialogFrm.pas">
+            <Form>FrequencyBandDialog</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
