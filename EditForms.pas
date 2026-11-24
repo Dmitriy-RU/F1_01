@@ -155,7 +155,67 @@ type
   end;
 
 
-implementation
+
+type
+  TTransmitterModeDialog = class(TForm)
+  private
+    FEdits: array[0..10] of TEdit;
+    FModulationGrid: TStringGrid;
+
+    FCurrentMode: TTransmitterMode;
+
+    procedure LoadMode(AMode: TTransmitterMode);
+    function SaveMode(AMode: TTransmitterMode): Boolean;
+    procedure RefreshModulationGrid(AMode: TTransmitterMode);
+
+    procedure AddModulationClick(Sender: TObject);
+    procedure EditModulationClick(Sender: TObject);
+    procedure DeleteModulationClick(Sender: TObject);
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    function Execute(AMode: TTransmitterMode): Boolean;
+  end;
+
+  TTransmitterEditor = class(TPanel)
+  private
+    FTransmitter: TTransmitter;
+    FUpdating: Boolean;
+
+    FEdits: array[0..8] of TEdit;
+    FGrid: TStringGrid;
+
+    FAddButton: TButton;
+    FEditButton: TButton;
+    FDeleteButton: TButton;
+
+    procedure GeneralChanged(Sender: TObject);
+    procedure RefreshGrid;
+
+    procedure AddModeClick(Sender: TObject);
+    procedure EditModeClick(Sender: TObject);
+    procedure DeleteModeClick(Sender: TObject);
+    procedure GridDblClick(Sender: TObject);
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(ATransmitter: TTransmitter);
+  end;
+
+
+type
+  TModulationParameterDialog = class(TForm)
+  private
+    FNameEdit: TEdit;
+    FValueEdit: TEdit;
+    FUnitEdit: TEdit;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    function Execute(AParameter: TModulationParameter): Boolean;
+  end;
+
+  implementation
 
 uses
   System.SysUtils;
@@ -827,7 +887,7 @@ begin
   FGrid := TStringGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.SetBounds(16, 282, 900, 300);
-  FGrid.Anchors := [akLeft, akTop, akRight, akBottom];
+  //FGrid.Anchors := [akLeft, akTop, akRight, akBottom];
 
   FGrid.ColCount := 6;
   FGrid.RowCount := 2;
@@ -862,21 +922,21 @@ begin
   FAddButton.Parent := Self;
   FAddButton.Caption := 'Добавить режим';
   FAddButton.SetBounds(16, 594, 120, 30);
-  FAddButton.Anchors := [akLeft, akBottom];
+ // FAddButton.Anchors := [akLeft, akBottom];
   FAddButton.OnClick := AddModeClick;
 
   FEditButton := TButton.Create(Self);
   FEditButton.Parent := Self;
   FEditButton.Caption := 'Изменить';
   FEditButton.SetBounds(146, 594, 100, 30);
-  FEditButton.Anchors := [akLeft, akBottom];
+//  FEditButton.Anchors := [akLeft, akBottom];
   FEditButton.OnClick := EditModeClick;
 
   FDeleteButton := TButton.Create(Self);
   FDeleteButton.Parent := Self;
   FDeleteButton.Caption := 'Удалить';
   FDeleteButton.SetBounds(256, 594, 100, 30);
-  FDeleteButton.Anchors := [akLeft, akBottom];
+ // FDeleteButton.Anchors := [akLeft, akBottom];
   FDeleteButton.OnClick := DeleteModeClick;
 end;
 
@@ -1045,6 +1105,776 @@ begin
 end;
 
 procedure TEquipmentCompositionEditor.GridDblClick(Sender: TObject);
+begin
+  if FEditButton.Enabled then
+    EditModeClick(FEditButton);
+end;
+
+
+constructor TModulationParameterDialog.Create(AOwner: TComponent);
+var
+  L: TLabel;
+  B: TButton;
+begin
+  inherited Create(AOwner);
+
+  Caption := 'Параметр модуляции';
+  BorderStyle := bsDialog;
+  Position := poOwnerFormCenter;
+  ClientWidth := 400;
+  ClientHeight := 220;
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := 'Наименование';
+  L.SetBounds(16, 12, 300, 18);
+
+  FNameEdit := TEdit.Create(Self);
+  FNameEdit.Parent := Self;
+  FNameEdit.SetBounds(16, 32, 368, 25);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := 'Значение';
+  L.SetBounds(16, 66, 300, 18);
+
+  FValueEdit := TEdit.Create(Self);
+  FValueEdit.Parent := Self;
+  FValueEdit.SetBounds(16, 86, 368, 25);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := 'Единица измерения';
+  L.SetBounds(16, 120, 300, 18);
+
+  FUnitEdit := TEdit.Create(Self);
+  FUnitEdit.Parent := Self;
+  FUnitEdit.SetBounds(16, 140, 180, 25);
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'OK';
+  B.ModalResult := mrOK;
+  B.SetBounds(214, 178, 80, 30);
+  B.Default := True;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Отмена';
+  B.ModalResult := mrCancel;
+  B.SetBounds(304, 178, 80, 30);
+  B.Cancel := True;
+end;
+
+function TModulationParameterDialog.Execute(
+  AParameter: TModulationParameter
+): Boolean;
+begin
+  FNameEdit.Text := AParameter.Name;
+  FValueEdit.Text := AParameter.Value;
+  FUnitEdit.Text := AParameter.UnitName;
+
+  Result := ShowModal = mrOK;
+
+  if Result then
+  begin
+    AParameter.Name := Trim(FNameEdit.Text);
+    AParameter.Value := Trim(FValueEdit.Text);
+    AParameter.UnitName := Trim(FUnitEdit.Text);
+  end;
+end;
+
+
+constructor TTransmitterModeDialog.Create(AOwner: TComponent);
+const
+  Captions: array[0..10] of string = (
+    '4.4. Класс излучения',
+    '4.5. Описание класса излучения',
+    '4.6. Номер полосы частот',
+    '4.7. Ширина полосы на уровне -3 дБ, Гц',
+    '4.8. Ширина полосы на уровне -30 дБ, Гц',
+    '4.9. Дополнительный уровень, дБ',
+    '4.10. Вид мощности излучения',
+    '4.11. Минимальная мощность, дБВт',
+    '4.12. Максимальная мощность, дБВт',
+    '4.13. Максимальная спектральная плотность мощности, дБВт/Гц',
+    'Номер режима (ссылка на раздел 3)'
+  );
+var
+  Scroll: TScrollBox;
+  L: TLabel;
+  B: TButton;
+  I, Y: Integer;
+begin
+  inherited Create(AOwner);
+
+  Caption := 'Характеристики режима передатчика';
+  BorderStyle := bsSizeable;
+  Position := poOwnerFormCenter;
+  ClientWidth := 650;
+  ClientHeight := 690;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.SetBounds(0, 0, 650, 490);
+  Scroll.Anchors := [akLeft, akTop, akRight, akBottom];
+
+  Y := 12;
+
+  for I := 0 to 10 do
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := Scroll;
+    L.Caption := Captions[I];
+    L.SetBounds(16, Y, 580, 18);
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].SetBounds(16, Y + 21, 580, 25);
+    FEdits[I].Anchors := [akLeft, akTop, akRight];
+
+    Inc(Y, 58);
+  end;
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := '4.14. Параметры модуляции';
+  L.SetBounds(16, 500, 300, 18);
+
+  FModulationGrid := TStringGrid.Create(Self);
+  FModulationGrid.Parent := Self;
+  FModulationGrid.SetBounds(16, 522, 450, 105);
+  FModulationGrid.Anchors := [akLeft, akRight, akBottom];
+
+  FModulationGrid.ColCount := 3;
+  FModulationGrid.RowCount := 2;
+  FModulationGrid.FixedRows := 1;
+  FModulationGrid.FixedCols := 0;
+
+  FModulationGrid.Cells[0, 0] := 'Наименование';
+  FModulationGrid.Cells[1, 0] := 'Значение';
+  FModulationGrid.Cells[2, 0] := 'Единица';
+
+  FModulationGrid.ColWidths[0] := 190;
+  FModulationGrid.ColWidths[1] := 140;
+  FModulationGrid.ColWidths[2] := 90;
+
+  FModulationGrid.Options := [
+    goFixedVertLine,
+    goFixedHorzLine,
+    goVertLine,
+    goHorzLine,
+    goRowSelect
+  ];
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Добавить';
+  B.SetBounds(476, 522, 140, 28);
+  B.Anchors := [akRight, akBottom];
+  B.OnClick := AddModulationClick;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Изменить';
+  B.SetBounds(476, 556, 140, 28);
+  B.Anchors := [akRight, akBottom];
+  B.OnClick := EditModulationClick;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Удалить';
+  B.SetBounds(476, 590, 140, 28);
+  B.Anchors := [akRight, akBottom];
+  B.OnClick := DeleteModulationClick;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'OK';
+  B.ModalResult := mrOK;
+  B.SetBounds(446, 644, 80, 30);
+  B.Anchors := [akRight, akBottom];
+  B.Default := True;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Отмена';
+  B.ModalResult := mrCancel;
+  B.SetBounds(536, 644, 80, 30);
+  B.Anchors := [akRight, akBottom];
+  B.Cancel := True;
+end;
+
+procedure TTransmitterModeDialog.LoadMode(
+  AMode: TTransmitterMode
+);
+begin
+
+  FCurrentMode := AMode;
+
+  FEdits[0].Text := AMode.EmissionClass;
+  FEdits[1].Text := AMode.EmissionClassDescription;
+  FEdits[2].Text := AMode.FrequencyBandNumber;
+
+  if AMode.BandwidthAt3DbHz.HasValue then
+    FEdits[3].Text := FloatToStr(AMode.BandwidthAt3DbHz.Value)
+  else
+    FEdits[3].Clear;
+
+  if AMode.BandwidthAt30DbHz.HasValue then
+    FEdits[4].Text := FloatToStr(AMode.BandwidthAt30DbHz.Value)
+  else
+    FEdits[4].Clear;
+
+  if AMode.BandwidthAdditionalLevelDb.HasValue then
+    FEdits[5].Text := FloatToStr(AMode.BandwidthAdditionalLevelDb.Value)
+  else
+    FEdits[5].Clear;
+
+  FEdits[6].Text := AMode.PowerEmissionKind;
+
+  if AMode.MinPowerDbW.HasValue then
+    FEdits[7].Text := FloatToStr(AMode.MinPowerDbW.Value)
+  else
+    FEdits[7].Clear;
+
+  if AMode.MaxPowerDbW.HasValue then
+    FEdits[8].Text := FloatToStr(AMode.MaxPowerDbW.Value)
+  else
+    FEdits[8].Clear;
+
+  if AMode.MaxPowerSpectralDensityDbWHz.HasValue then
+    FEdits[9].Text :=
+      FloatToStr(AMode.MaxPowerSpectralDensityDbWHz.Value)
+  else
+    FEdits[9].Clear;
+
+  FEdits[10].Text := AMode.ModeNumber;
+
+  RefreshModulationGrid(AMode);
+end;
+
+procedure TTransmitterModeDialog.RefreshModulationGrid(
+  AMode: TTransmitterMode
+);
+var
+  I: Integer;
+begin
+  FModulationGrid.RowCount :=
+    Max(2, AMode.ModulationParameters.Count + 1);
+
+  for I := 0 to AMode.ModulationParameters.Count - 1 do
+  begin
+    FModulationGrid.Cells[0, I + 1] :=
+      AMode.ModulationParameters[I].Name;
+
+    FModulationGrid.Cells[1, I + 1] :=
+      AMode.ModulationParameters[I].Value;
+
+    FModulationGrid.Cells[2, I + 1] :=
+      AMode.ModulationParameters[I].UnitName;
+  end;
+end;
+
+function TTransmitterModeDialog.SaveMode(
+  AMode: TTransmitterMode
+): Boolean;
+var
+  V: Double;
+  Optional: TOptionalValue<Double>;
+
+  function ReadOptional(
+    AIndex: Integer;
+    out AValue: TOptionalValue<Double>
+  ): Boolean;
+  begin
+    AValue.HasValue := False;
+    AValue.Value := 0;
+
+    if Trim(FEdits[AIndex].Text) = '' then
+      Exit(True);
+
+    Result := TryStrToFloat(Trim(FEdits[AIndex].Text), V);
+
+    if not Result then
+      Exit;
+
+    AValue.HasValue := True;
+    AValue.Value := V;
+  end;
+
+begin
+  Result := False;
+
+  if Trim(FEdits[10].Text) = '' then
+  begin
+    MessageDlg(
+      'Укажите номер режима.',
+      mtWarning, [mbOK], 0
+    );
+    Exit;
+  end;
+
+  if not ReadOptional(3, Optional) then
+    Exit;
+  AMode.BandwidthAt3DbHz := Optional;
+
+  if not ReadOptional(4, Optional) then
+    Exit;
+  AMode.BandwidthAt30DbHz := Optional;
+
+  if not ReadOptional(5, Optional) then
+    Exit;
+  AMode.BandwidthAdditionalLevelDb := Optional;
+
+  if not ReadOptional(7, Optional) then
+    Exit;
+  AMode.MinPowerDbW := Optional;
+
+  if not ReadOptional(8, Optional) then
+    Exit;
+  AMode.MaxPowerDbW := Optional;
+
+  if not ReadOptional(9, Optional) then
+    Exit;
+  AMode.MaxPowerSpectralDensityDbWHz := Optional;
+
+  AMode.EmissionClass := Trim(FEdits[0].Text);
+  AMode.EmissionClassDescription := Trim(FEdits[1].Text);
+  AMode.FrequencyBandNumber := Trim(FEdits[2].Text);
+  AMode.PowerEmissionKind := Trim(FEdits[6].Text);
+  AMode.ModeNumber := Trim(FEdits[10].Text);
+
+  Result := True;
+end;
+
+function TTransmitterModeDialog.Execute(
+  AMode: TTransmitterMode
+): Boolean;
+begin
+  LoadMode(AMode);
+
+  repeat
+    Result := ShowModal = mrOK;
+
+    if not Result then
+      Exit;
+
+    if SaveMode(AMode) then
+      Exit(True);
+
+    MessageDlg(
+      'Одно или несколько числовых полей содержат некорректное значение.',
+      mtWarning, [mbOK], 0
+    );
+  until False;
+end;
+
+
+procedure TTransmitterModeDialog.AddModulationClick(Sender: TObject);
+var
+  P: TModulationParameter;
+  Dialog: TModulationParameterDialog;
+begin
+  if FCurrentMode = nil then
+    Exit;
+
+  P := TModulationParameter.Create;
+  try
+    Dialog := TModulationParameterDialog.Create(Self);
+    try
+      if Dialog.Execute(P) then
+      begin
+        FCurrentMode.ModulationParameters.Add(P);
+        P := nil;
+        RefreshModulationGrid(FCurrentMode);
+      end;
+    finally
+      Dialog.Free;
+    end;
+  finally
+    P.Free;
+  end;
+end;
+
+procedure TTransmitterModeDialog.EditModulationClick(Sender: TObject);
+var
+  Index: Integer;
+  P: TModulationParameter;
+  Dialog: TModulationParameterDialog;
+begin
+  if FCurrentMode = nil then
+    Exit;
+
+  Index := FModulationGrid.Row - 1;
+
+  if (Index < 0) or
+     (Index >= FCurrentMode.ModulationParameters.Count) then
+    Exit;
+
+  P := FCurrentMode.ModulationParameters[Index];
+
+  Dialog := TModulationParameterDialog.Create(Self);
+  try
+    if Dialog.Execute(P) then
+      RefreshModulationGrid(FCurrentMode);
+  finally
+    Dialog.Free;
+  end;
+end;
+
+procedure TTransmitterModeDialog.DeleteModulationClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FCurrentMode = nil then
+    Exit;
+
+  Index := FModulationGrid.Row - 1;
+
+  if (Index < 0) or
+     (Index >= FCurrentMode.ModulationParameters.Count) then
+    Exit;
+
+  if MessageDlg(
+    'Удалить выбранный параметр модуляции?',
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+  ) <> mrYes then
+    Exit;
+
+  FCurrentMode.ModulationParameters.Delete(Index);
+  RefreshModulationGrid(FCurrentMode);
+end;
+
+
+constructor TTransmitterEditor.Create(AOwner: TComponent);
+const
+  Captions: array[0..8] of string = (
+    '4.1. Рабочие частоты',
+    '4.2. Шаг сетки частот',
+    '4.3. Вид перестройки частоты',
+    '4.15. Тип выходного устройства',
+    '4.16. Относительная нестабильность частоты',
+    '4.17. Гармоники ниже 3Fp, дБ',
+    '4.18. Гармоники выше 3Fp, дБ',
+    '4.19. Другие побочные излучения',
+    '4.20. Уровень шумового излучения'
+  );
+var
+  Scroll: TScrollBox;
+  L: TLabel;
+  I, Y: Integer;
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+  FTransmitter := nil;
+  FUpdating := False;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.Align := alClient;
+  Scroll.BorderStyle := bsNone;
+
+  Y := 12;
+
+  for I := 0 to 8 do
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := Scroll;
+    L.Caption := Captions[I];
+    L.SetBounds(16, Y, 600, 18);
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].SetBounds(16, Y + 22, 700, 25);
+    FEdits[I].Anchors := [akLeft, akTop, akRight];
+    FEdits[I].Tag := I;
+    FEdits[I].OnChange := GeneralChanged;
+
+    Inc(Y, 58);
+  end;
+
+  L := TLabel.Create(Self);
+  L.Parent := Scroll;
+  L.Caption := 'Характеристики по режимам';
+  L.SetBounds(16, Y + 8, 400, 20);
+
+  FGrid := TStringGrid.Create(Self);
+  FGrid.Parent := Scroll;
+  FGrid.SetBounds(16, Y + 34, 900, 240);
+  FGrid.Anchors := [akLeft, akTop, akRight];
+
+  FGrid.ColCount := 8;
+  FGrid.RowCount := 2;
+  FGrid.FixedRows := 1;
+  FGrid.FixedCols := 0;
+
+  FGrid.Cells[0, 0] := 'Режим';
+  FGrid.Cells[1, 0] := 'Класс излучения';
+  FGrid.Cells[2, 0] := 'Полоса';
+  FGrid.Cells[3, 0] := 'Ширина -3 дБ';
+  FGrid.Cells[4, 0] := 'Ширина -30 дБ';
+  FGrid.Cells[5, 0] := 'Вид мощности';
+  FGrid.Cells[6, 0] := 'Мин. мощность';
+  FGrid.Cells[7, 0] := 'Макс. мощность';
+
+  FGrid.ColWidths[0] := 55;
+  FGrid.ColWidths[1] := 120;
+  FGrid.ColWidths[2] := 55;
+  FGrid.ColWidths[3] := 100;
+  FGrid.ColWidths[4] := 100;
+  FGrid.ColWidths[5] := 90;
+  FGrid.ColWidths[6] := 100;
+  FGrid.ColWidths[7] := 100;
+
+  FGrid.Options := [
+    goFixedVertLine,
+    goFixedHorzLine,
+    goVertLine,
+    goHorzLine,
+    goRowSelect
+  ];
+
+  FGrid.OnDblClick := GridDblClick;
+
+  FAddButton := TButton.Create(Self);
+  FAddButton.Parent := Scroll;
+  FAddButton.Caption := 'Добавить режим';
+  FAddButton.SetBounds(16, Y + 284, 120, 30);
+
+  FEditButton := TButton.Create(Self);
+  FEditButton.Parent := Scroll;
+  FEditButton.Caption := 'Изменить';
+  FEditButton.SetBounds(146, Y + 284, 100, 30);
+
+  FDeleteButton := TButton.Create(Self);
+  FDeleteButton.Parent := Scroll;
+  FDeleteButton.Caption := 'Удалить';
+  FDeleteButton.SetBounds(256, Y + 284, 100, 30);
+
+  FAddButton.OnClick := AddModeClick;
+  FEditButton.OnClick := EditModeClick;
+  FDeleteButton.OnClick := DeleteModeClick;
+end;
+
+procedure TTransmitterEditor.GeneralChanged(Sender: TObject);
+var
+  V: Double;
+  Optional: TOptionalValue<Double>;
+  Index: Integer;
+begin
+  if FUpdating or (FTransmitter = nil) then
+    Exit;
+
+  Index := TEdit(Sender).Tag;
+
+  case Index of
+    0: FTransmitter.OperatingFrequencies := TEdit(Sender).Text;
+    1: FTransmitter.FrequencyGridStep := TEdit(Sender).Text;
+    2: FTransmitter.FrequencyTuningType := TEdit(Sender).Text;
+    3: FTransmitter.OutputDeviceType := TEdit(Sender).Text;
+    4: FTransmitter.RelativeFrequencyInstability := TEdit(Sender).Text;
+    5, 6, 8:
+      begin
+        Optional.HasValue := False;
+        Optional.Value := 0;
+
+        if Trim(TEdit(Sender).Text) <> '' then
+        begin
+          if not TryStrToFloat(Trim(TEdit(Sender).Text), V) then
+            Exit;
+
+          Optional.HasValue := True;
+          Optional.Value := V;
+        end;
+
+        case Index of
+          5: FTransmitter.HarmonicsBelow3FpDb := Optional;
+          6: FTransmitter.HarmonicsAbove3FpDb := Optional;
+          8: FTransmitter.NoiseEmissionLevel := Optional;
+        end;
+      end;
+    7: FTransmitter.OtherSpuriousEmissions := TEdit(Sender).Text;
+  end;
+end;
+
+procedure TTransmitterEditor.Bind(ATransmitter: TTransmitter);
+begin
+  FUpdating := True;
+  try
+    FTransmitter := ATransmitter;
+
+    if FTransmitter = nil then
+    begin
+      for var I := 0 to 8 do
+        FEdits[I].Clear;
+    end
+    else
+    begin
+      FEdits[0].Text := FTransmitter.OperatingFrequencies;
+      FEdits[1].Text := FTransmitter.FrequencyGridStep;
+      FEdits[2].Text := FTransmitter.FrequencyTuningType;
+      FEdits[3].Text := FTransmitter.OutputDeviceType;
+      FEdits[4].Text := FTransmitter.RelativeFrequencyInstability;
+
+      if FTransmitter.HarmonicsBelow3FpDb.HasValue then
+        FEdits[5].Text :=
+          FloatToStr(FTransmitter.HarmonicsBelow3FpDb.Value)
+      else
+        FEdits[5].Clear;
+
+      if FTransmitter.HarmonicsAbove3FpDb.HasValue then
+        FEdits[6].Text :=
+          FloatToStr(FTransmitter.HarmonicsAbove3FpDb.Value)
+      else
+        FEdits[6].Clear;
+
+      FEdits[7].Text := FTransmitter.OtherSpuriousEmissions;
+
+      if FTransmitter.NoiseEmissionLevel.HasValue then
+        FEdits[8].Text :=
+          FloatToStr(FTransmitter.NoiseEmissionLevel.Value)
+      else
+        FEdits[8].Clear;
+    end;
+  finally
+    FUpdating := False;
+  end;
+
+  RefreshGrid;
+end;
+
+procedure TTransmitterEditor.RefreshGrid;
+var
+  I: Integer;
+  Mode: TTransmitterMode;
+begin
+  if FTransmitter = nil then
+  begin
+    FGrid.RowCount := 2;
+    FEditButton.Enabled := False;
+    FDeleteButton.Enabled := False;
+    Exit;
+  end;
+
+  FGrid.RowCount := Max(2, FTransmitter.Modes.Count + 1);
+
+  for I := 0 to FTransmitter.Modes.Count - 1 do
+  begin
+    Mode := FTransmitter.Modes[I];
+
+    FGrid.Cells[0, I + 1] := Mode.ModeNumber;
+    FGrid.Cells[1, I + 1] := Mode.EmissionClass;
+    FGrid.Cells[2, I + 1] := Mode.FrequencyBandNumber;
+
+    if Mode.BandwidthAt3DbHz.HasValue then
+      FGrid.Cells[3, I + 1] :=
+        FloatToStr(Mode.BandwidthAt3DbHz.Value)
+    else
+      FGrid.Cells[3, I + 1] := '';
+
+    if Mode.BandwidthAt30DbHz.HasValue then
+      FGrid.Cells[4, I + 1] :=
+        FloatToStr(Mode.BandwidthAt30DbHz.Value)
+    else
+      FGrid.Cells[4, I + 1] := '';
+
+    FGrid.Cells[5, I + 1] := Mode.PowerEmissionKind;
+
+    if Mode.MinPowerDbW.HasValue then
+      FGrid.Cells[6, I + 1] :=
+        FloatToStr(Mode.MinPowerDbW.Value)
+    else
+      FGrid.Cells[6, I + 1] := '';
+
+    if Mode.MaxPowerDbW.HasValue then
+      FGrid.Cells[7, I + 1] :=
+        FloatToStr(Mode.MaxPowerDbW.Value)
+    else
+      FGrid.Cells[7, I + 1] := '';
+  end;
+
+  FEditButton.Enabled := FTransmitter.Modes.Count > 0;
+  FDeleteButton.Enabled := FTransmitter.Modes.Count > 0;
+end;
+
+procedure TTransmitterEditor.AddModeClick(Sender: TObject);
+var
+  Mode: TTransmitterMode;
+  Dialog: TTransmitterModeDialog;
+begin
+  if FTransmitter = nil then
+    Exit;
+
+  Mode := TTransmitterMode.Create;
+  try
+    Dialog := TTransmitterModeDialog.Create(Self);
+    try
+      if Dialog.Execute(Mode) then
+      begin
+        FTransmitter.Modes.Add(Mode);
+        Mode := nil;
+        RefreshGrid;
+      end;
+    finally
+      Dialog.Free;
+    end;
+  finally
+    Mode.Free;
+  end;
+end;
+
+procedure TTransmitterEditor.EditModeClick(Sender: TObject);
+var
+  Index: Integer;
+  Dialog: TTransmitterModeDialog;
+begin
+  if FTransmitter = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FTransmitter.Modes.Count) then
+    Exit;
+
+  Dialog := TTransmitterModeDialog.Create(Self);
+  try
+    if Dialog.Execute(FTransmitter.Modes[Index]) then
+      RefreshGrid;
+  finally
+    Dialog.Free;
+  end;
+end;
+
+procedure TTransmitterEditor.DeleteModeClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FTransmitter = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FTransmitter.Modes.Count) then
+    Exit;
+
+  if MessageDlg(
+    'Удалить характеристики выбранного режима передатчика?',
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+  ) <> mrYes then
+    Exit;
+
+  FTransmitter.Modes.Delete(Index);
+  RefreshGrid;
+end;
+
+procedure TTransmitterEditor.GridDblClick(Sender: TObject);
 begin
   if FEditButton.Enabled then
     EditModeClick(FEditButton);
