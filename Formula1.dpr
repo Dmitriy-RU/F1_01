@@ -7,7 +7,8 @@ uses
   DataModel in 'DataModel.pas',
   DataValidation in 'DataValidation.pas',
   EditForms in 'EditForms.pas',
-  FrequencyBandDialogFrm in 'FrequencyBandDialogFrm.pas' {FrequencyBandDialog};
+  FrequencyBandDialogFrm in 'FrequencyBandDialogFrm.pas' {FrequencyBandDialog},
+  DocumentImage in 'DocumentImage.pas';
 
 {$R *.res}
 

@@ -254,6 +254,7 @@ begin
   begin
     Page := TTabSheet.Create(Self);
     Page.PageControl := FPageControl;
+//    FPageControl.Pag
     Page.Caption := TAB_NAMES[I];
 
 //    LabelControl := TLabel.Create(Page);
