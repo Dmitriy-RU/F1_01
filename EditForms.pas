@@ -162,18 +162,20 @@ type
     FEdits: array[0..10] of TEdit;
     FModulationGrid: TStringGrid;
 
-    FCurrentMode: TTransmitterMode;
+  FCurrentMode: TTransmitterMode;
+  FWorkingParameters: TObjectList<TModulationParameter>;
 
     procedure LoadMode(AMode: TTransmitterMode);
     function SaveMode(AMode: TTransmitterMode): Boolean;
-    procedure RefreshModulationGrid(AMode: TTransmitterMode);
 
+  procedure RefreshModulationGrid;
     procedure AddModulationClick(Sender: TObject);
     procedure EditModulationClick(Sender: TObject);
     procedure DeleteModulationClick(Sender: TObject);
 
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     function Execute(AMode: TTransmitterMode): Boolean;
   end;
 
@@ -215,7 +217,7 @@ type
     function Execute(AParameter: TModulationParameter): Boolean;
   end;
 
-  implementation
+implementation
 
 uses
   System.SysUtils;
@@ -1116,7 +1118,7 @@ var
   L: TLabel;
   B: TButton;
 begin
-  inherited Create(AOwner);
+  inherited CreateNew(AOwner);
 
   Caption := 'Параметр модуляции';
   BorderStyle := bsDialog;
@@ -1206,7 +1208,10 @@ var
   B: TButton;
   I, Y: Integer;
 begin
-  inherited Create(AOwner);
+  inherited CreateNew(AOwner);
+
+FWorkingParameters := TObjectList<TModulationParameter>.Create(True);
+FCurrentMode := nil;
 
   Caption := 'Характеристики режима передатчика';
   BorderStyle := bsSizeable;
@@ -1305,6 +1310,12 @@ begin
   B.Cancel := True;
 end;
 
+destructor TTransmitterModeDialog.Destroy;
+begin
+  FWorkingParameters.Free;
+  inherited Destroy;
+end;
+
 procedure TTransmitterModeDialog.LoadMode(
   AMode: TTransmitterMode
 );
@@ -1351,28 +1362,40 @@ begin
 
   FEdits[10].Text := AMode.ModeNumber;
 
-  RefreshModulationGrid(AMode);
+FCurrentMode := AMode;
+
+FWorkingParameters.Clear;
+
+for var P in AMode.ModulationParameters do
+begin
+  var NewP := TModulationParameter.Create;
+  NewP.Name := P.Name;
+  NewP.Value := P.Value;
+  NewP.UnitName := P.UnitName;
+  FWorkingParameters.Add(NewP);
 end;
 
-procedure TTransmitterModeDialog.RefreshModulationGrid(
-  AMode: TTransmitterMode
-);
+RefreshModulationGrid;
+
+end;
+
+procedure TTransmitterModeDialog.RefreshModulationGrid;
 var
   I: Integer;
 begin
   FModulationGrid.RowCount :=
-    Max(2, AMode.ModulationParameters.Count + 1);
+    Max(2, FWorkingParameters.Count + 1);
 
-  for I := 0 to AMode.ModulationParameters.Count - 1 do
+  for I := 0 to FWorkingParameters.Count - 1 do
   begin
     FModulationGrid.Cells[0, I + 1] :=
-      AMode.ModulationParameters[I].Name;
+      FWorkingParameters[I].Name;
 
     FModulationGrid.Cells[1, I + 1] :=
-      AMode.ModulationParameters[I].Value;
+      FWorkingParameters[I].Value;
 
     FModulationGrid.Cells[2, I + 1] :=
-      AMode.ModulationParameters[I].UnitName;
+      FWorkingParameters[I].UnitName;
   end;
 end;
 
@@ -1487,7 +1510,7 @@ begin
       begin
         FCurrentMode.ModulationParameters.Add(P);
         P := nil;
-        RefreshModulationGrid(FCurrentMode);
+        RefreshModulationGrid;
       end;
     finally
       Dialog.Free;
@@ -1517,7 +1540,7 @@ begin
   Dialog := TModulationParameterDialog.Create(Self);
   try
     if Dialog.Execute(P) then
-      RefreshModulationGrid(FCurrentMode);
+      RefreshModulationGrid;
   finally
     Dialog.Free;
   end;
@@ -1545,7 +1568,7 @@ begin
     Exit;
 
   FCurrentMode.ModulationParameters.Delete(Index);
-  RefreshModulationGrid(FCurrentMode);
+  RefreshModulationGrid;
 end;
 
 
