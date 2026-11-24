@@ -217,7 +217,47 @@ type
     function Execute(AParameter: TModulationParameter): Boolean;
   end;
 
-implementation
+
+type
+  TReceiverModeDialog = class(TForm)
+  private
+    FEdits: array[0..14] of TEdit;
+
+    procedure LoadMode(AMode: TReceiverMode);
+    function SaveMode(AMode: TReceiverMode): Boolean;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    function Execute(AMode: TReceiverMode): Boolean;
+  end;
+
+  TReceiverEditor = class(TPanel)
+  private
+    FReceiver: TReceiver;
+    FUpdating: Boolean;
+
+    FEdits: array[0..10] of TEdit;
+    FGrid: TStringGrid;
+
+    FAddButton: TButton;
+    FEditButton: TButton;
+    FDeleteButton: TButton;
+
+    procedure GeneralChanged(Sender: TObject);
+    procedure RefreshGrid;
+
+    procedure AddModeClick(Sender: TObject);
+    procedure EditModeClick(Sender: TObject);
+    procedure DeleteModeClick(Sender: TObject);
+    procedure GridDblClick(Sender: TObject);
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(AReceiver: TReceiver);
+  end;
+
+
+  implementation
 
 uses
   System.SysUtils;
@@ -1902,6 +1942,566 @@ begin
   if FEditButton.Enabled then
     EditModeClick(FEditButton);
 end;
+
+// 555
+
+
+constructor TReceiverModeDialog.Create(AOwner: TComponent);
+const
+  Captions: array[0..14] of string = (
+    'Номер режима (ссылка на раздел 3)',
+    '5.4. Принимаемые классы излучения',
+    '5.5. Номер полосы частот',
+    '5.6. Пороговая чувствительность',
+    '5.7. Реальная чувствительность',
+    '5.8. Защитное отношение, дБ',
+    '5.9. Вид помехи',
+    '5.10. Ширина полосы на уровне -3 дБ, Гц',
+    '5.11. Ширина полосы на уровне -30 дБ, Гц',
+    '5.12. Дополнительный уровень, дБ',
+    '5.13. Перестройка гетеродина',
+    '5.14. Промежуточная частота, Гц',
+    '5.15. Ширина полосы ПЧ на уровне -3 дБ, Гц',
+    '5.16. Ширина полосы ПЧ на уровне -30 дБ, Гц',
+    '5.17. Дополнительный уровень ПЧ, дБ'
+  );
+var
+  Scroll: TScrollBox;
+  L: TLabel;
+  B: TButton;
+  I, Y: Integer;
+begin
+  inherited CreateNew(AOwner);
+
+  Caption := 'Характеристики режима приёмника';
+  BorderStyle := bsSizeable;
+  Position := poOwnerFormCenter;
+  ClientWidth := 620;
+  ClientHeight := 650;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.SetBounds(0, 0, 620, 570);
+  Scroll.Anchors := [akLeft, akTop, akRight, akBottom];
+
+  Y := 12;
+
+  for I := 0 to 14 do
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := Scroll;
+    L.Caption := Captions[I];
+    L.SetBounds(16, Y, 560, 18);
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].SetBounds(16, Y + 21, 560, 25);
+    FEdits[I].Anchors := [akLeft, akTop, akRight];
+
+    Inc(Y, 58);
+  end;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'OK';
+  B.ModalResult := mrOK;
+  B.SetBounds(424, 594, 80, 30);
+  B.Anchors := [akRight, akBottom];
+  B.Default := True;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Отмена';
+  B.ModalResult := mrCancel;
+  B.SetBounds(514, 594, 80, 30);
+  B.Anchors := [akRight, akBottom];
+  B.Cancel := True;
+end;
+
+procedure TReceiverModeDialog.LoadMode(AMode: TReceiverMode);
+begin
+  FEdits[0].Text := AMode.ModeNumber;
+  FEdits[1].Text := AMode.ReceivedEmissionClasses;
+  FEdits[2].Text := AMode.FrequencyBandNumber;
+
+  if AMode.ThresholdSensitivity.HasValue then
+    FEdits[3].Text := FloatToStr(AMode.ThresholdSensitivity.Value)
+  else FEdits[3].Clear;
+
+  if AMode.RealSensitivity.HasValue then
+    FEdits[4].Text := FloatToStr(AMode.RealSensitivity.Value)
+  else FEdits[4].Clear;
+
+  if AMode.ProtectionRatioDb.HasValue then
+    FEdits[5].Text := FloatToStr(AMode.ProtectionRatioDb.Value)
+  else FEdits[5].Clear;
+
+  FEdits[6].Text := AMode.InterferenceType;
+
+  if AMode.UhfBandwidthAt3DbHz.HasValue then
+    FEdits[7].Text := FloatToStr(AMode.UhfBandwidthAt3DbHz.Value)
+  else FEdits[7].Clear;
+
+  if AMode.UhfBandwidthAt30DbHz.HasValue then
+    FEdits[8].Text := FloatToStr(AMode.UhfBandwidthAt30DbHz.Value)
+  else FEdits[8].Clear;
+
+  if AMode.UhfBandwidthAdditionalLevelDb.HasValue then
+    FEdits[9].Text :=
+      FloatToStr(AMode.UhfBandwidthAdditionalLevelDb.Value)
+  else FEdits[9].Clear;
+
+  FEdits[10].Text := AMode.HeterodyneTuning;
+
+  if AMode.IntermediateFrequencyHz.HasValue then
+    FEdits[11].Text := FloatToStr(AMode.IntermediateFrequencyHz.Value)
+  else FEdits[11].Clear;
+
+  if AMode.IfBandwidthAt3DbHz.HasValue then
+    FEdits[12].Text := FloatToStr(AMode.IfBandwidthAt3DbHz.Value)
+  else FEdits[12].Clear;
+
+  if AMode.IfBandwidthAt30DbHz.HasValue then
+    FEdits[13].Text := FloatToStr(AMode.IfBandwidthAt30DbHz.Value)
+  else FEdits[13].Clear;
+
+  if AMode.IfBandwidthAdditionalLevelDb.HasValue then
+    FEdits[14].Text :=
+      FloatToStr(AMode.IfBandwidthAdditionalLevelDb.Value)
+  else FEdits[14].Clear;
+end;
+
+function TReceiverModeDialog.SaveMode(AMode: TReceiverMode): Boolean;
+var
+  V: Double;
+
+  function ReadOptional(
+    AIndex: Integer;
+    out AValue: TOptionalValue<Double>
+  ): Boolean;
+  begin
+    AValue.HasValue := False;
+    AValue.Value := 0;
+
+    if Trim(FEdits[AIndex].Text) = '' then
+      Exit(True);
+
+    Result := TryStrToFloat(Trim(FEdits[AIndex].Text), V);
+
+    if Result then
+    begin
+      AValue.HasValue := True;
+      AValue.Value := V;
+    end;
+  end;
+
+var
+  O: TOptionalValue<Double>;
+begin
+  Result := False;
+
+  if Trim(FEdits[0].Text) = '' then
+  begin
+    MessageDlg('Укажите номер режима.', mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  if not ReadOptional(3, O) then Exit;
+  AMode.ThresholdSensitivity := O;
+
+  if not ReadOptional(4, O) then Exit;
+  AMode.RealSensitivity := O;
+
+  if not ReadOptional(5, O) then Exit;
+  AMode.ProtectionRatioDb := O;
+
+  if not ReadOptional(7, O) then Exit;
+  AMode.UhfBandwidthAt3DbHz := O;
+
+  if not ReadOptional(8, O) then Exit;
+  AMode.UhfBandwidthAt30DbHz := O;
+
+  if not ReadOptional(9, O) then Exit;
+  AMode.UhfBandwidthAdditionalLevelDb := O;
+
+  if not ReadOptional(11, O) then Exit;
+  AMode.IntermediateFrequencyHz := O;
+
+  if not ReadOptional(12, O) then Exit;
+  AMode.IfBandwidthAt3DbHz := O;
+
+  if not ReadOptional(13, O) then Exit;
+  AMode.IfBandwidthAt30DbHz := O;
+
+  if not ReadOptional(14, O) then Exit;
+  AMode.IfBandwidthAdditionalLevelDb := O;
+
+  AMode.ModeNumber := Trim(FEdits[0].Text);
+  AMode.ReceivedEmissionClasses := Trim(FEdits[1].Text);
+  AMode.FrequencyBandNumber := Trim(FEdits[2].Text);
+  AMode.InterferenceType := Trim(FEdits[6].Text);
+  AMode.HeterodyneTuning := Trim(FEdits[10].Text);
+
+  Result := True;
+end;
+
+function TReceiverModeDialog.Execute(AMode: TReceiverMode): Boolean;
+begin
+  LoadMode(AMode);
+
+  repeat
+    Result := ShowModal = mrOK;
+
+    if not Result then
+      Exit;
+
+    if SaveMode(AMode) then
+      Exit(True);
+
+    MessageDlg(
+      'Одно или несколько числовых полей содержат некорректное значение.',
+      mtWarning, [mbOK], 0
+    );
+  until False;
+end;
+
+
+constructor TReceiverEditor.Create(AOwner: TComponent);
+const
+  Captions: array[0..10] of string = (
+    '5.1. Тип приёмника',
+    '5.2. Рабочие частоты',
+    '5.3. Шаг сетки частот',
+    '5.18. Нестабильность частоты гетеродина',
+    '5.19. Избирательность по соседнему каналу, дБ',
+    '5.20. Избирательность по зеркальному каналу, дБ',
+    '5.21. Избирательность по другим побочным каналам, дБ',
+    '5.22. Блокирование и перекрёстная модуляция, дБ',
+    '5.23. Избирательность по интермодуляции, дБ',
+    '5.24. Эквивалентная шумовая температура, К',
+    '5.25. Максимальное увеличение шумовой температуры, %'
+  );
+var
+  Scroll: TScrollBox;
+  L: TLabel;
+  I, Y: Integer;
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+  FReceiver := nil;
+  FUpdating := False;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.Align := alClient;
+  Scroll.BorderStyle := bsNone;
+
+  Y := 12;
+
+  for I := 0 to 10 do
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := Scroll;
+    L.Caption := Captions[I];
+    L.SetBounds(16, Y, 650, 18);
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].SetBounds(16, Y + 22, 700, 25);
+    FEdits[I].Anchors := [akLeft, akTop, akRight];
+    FEdits[I].Tag := I;
+    FEdits[I].OnChange := GeneralChanged;
+
+    Inc(Y, 58);
+  end;
+
+  L := TLabel.Create(Self);
+  L.Parent := Scroll;
+  L.Caption := 'Характеристики по режимам';
+  L.SetBounds(16, Y + 8, 400, 20);
+
+  FGrid := TStringGrid.Create(Self);
+  FGrid.Parent := Scroll;
+  FGrid.SetBounds(16, Y + 34, 1000, 240);
+  FGrid.Anchors := [akLeft, akTop, akRight];
+
+  FGrid.ColCount := 7;
+  FGrid.RowCount := 2;
+  FGrid.FixedRows := 1;
+  FGrid.FixedCols := 0;
+
+  FGrid.Cells[0, 0] := 'Режим';
+  FGrid.Cells[1, 0] := 'Классы излучения';
+  FGrid.Cells[2, 0] := 'Полоса';
+  FGrid.Cells[3, 0] := 'Пороговая чувствительность';
+  FGrid.Cells[4, 0] := 'Реальная чувствительность';
+  FGrid.Cells[5, 0] := 'Защитное отношение';
+  FGrid.Cells[6, 0] := 'Вид помехи';
+
+  FGrid.ColWidths[0] := 60;
+  FGrid.ColWidths[1] := 140;
+  FGrid.ColWidths[2] := 60;
+  FGrid.ColWidths[3] := 140;
+  FGrid.ColWidths[4] := 140;
+  FGrid.ColWidths[5] := 120;
+  FGrid.ColWidths[6] := 120;
+
+  FGrid.Options := [
+    goFixedVertLine,
+    goFixedHorzLine,
+    goVertLine,
+    goHorzLine,
+    goRowSelect
+  ];
+
+  FGrid.OnDblClick := GridDblClick;
+
+  FAddButton := TButton.Create(Self);
+  FAddButton.Parent := Scroll;
+  FAddButton.Caption := 'Добавить режим';
+  FAddButton.SetBounds(16, Y + 284, 120, 30);
+
+  FEditButton := TButton.Create(Self);
+  FEditButton.Parent := Scroll;
+  FEditButton.Caption := 'Изменить';
+  FEditButton.SetBounds(146, Y + 284, 100, 30);
+
+  FDeleteButton := TButton.Create(Self);
+  FDeleteButton.Parent := Scroll;
+  FDeleteButton.Caption := 'Удалить';
+  FDeleteButton.SetBounds(256, Y + 284, 100, 30);
+
+  FAddButton.OnClick := AddModeClick;
+  FEditButton.OnClick := EditModeClick;
+  FDeleteButton.OnClick := DeleteModeClick;
+end;
+
+procedure TReceiverEditor.GeneralChanged(Sender: TObject);
+var
+  V: Double;
+  O: TOptionalValue<Double>;
+  Index: Integer;
+begin
+  if FUpdating or (FReceiver = nil) then
+    Exit;
+
+  Index := TEdit(Sender).Tag;
+
+  case Index of
+    0: FReceiver.ReceiverType := TEdit(Sender).Text;
+    1: FReceiver.OperatingFrequencies := TEdit(Sender).Text;
+    2: FReceiver.FrequencyGridStep := TEdit(Sender).Text;
+    3: FReceiver.HeterodyneFrequencyInstability := TEdit(Sender).Text;
+    4..10:
+      begin
+        O.HasValue := False;
+        O.Value := 0;
+
+        if Trim(TEdit(Sender).Text) <> '' then
+        begin
+          if not TryStrToFloat(Trim(TEdit(Sender).Text), V) then
+            Exit;
+
+          O.HasValue := True;
+          O.Value := V;
+        end;
+
+        case Index of
+          4: FReceiver.AdjacentChannelSelectivityDb := O;
+          5: FReceiver.ImageChannelSelectivityDb := O;
+          6: FReceiver.OtherSpuriousResponseSelectivityDb := O;
+          7: FReceiver.BlockingAndCrossModulationDb := O;
+          8: FReceiver.IntermodulationSelectivityDb := O;
+          9: FReceiver.EquivalentNoiseTemperatureK := O;
+          10: FReceiver.MaxNoiseTemperatureIncreasePercent := O;
+        end;
+      end;
+  end;
+end;
+
+procedure TReceiverEditor.Bind(AReceiver: TReceiver);
+begin
+  FUpdating := True;
+  try
+    FReceiver := AReceiver;
+
+    if FReceiver = nil then
+    begin
+      for var I := 0 to 10 do
+        FEdits[I].Clear;
+    end
+    else
+    begin
+      FEdits[0].Text := FReceiver.ReceiverType;
+      FEdits[1].Text := FReceiver.OperatingFrequencies;
+      FEdits[2].Text := FReceiver.FrequencyGridStep;
+      FEdits[3].Text := FReceiver.HeterodyneFrequencyInstability;
+
+      if FReceiver.AdjacentChannelSelectivityDb.HasValue then
+        FEdits[4].Text :=
+          FloatToStr(FReceiver.AdjacentChannelSelectivityDb.Value)
+      else FEdits[4].Clear;
+
+      if FReceiver.ImageChannelSelectivityDb.HasValue then
+        FEdits[5].Text :=
+          FloatToStr(FReceiver.ImageChannelSelectivityDb.Value)
+      else FEdits[5].Clear;
+
+      if FReceiver.OtherSpuriousResponseSelectivityDb.HasValue then
+        FEdits[6].Text :=
+          FloatToStr(FReceiver.OtherSpuriousResponseSelectivityDb.Value)
+      else FEdits[6].Clear;
+
+      if FReceiver.BlockingAndCrossModulationDb.HasValue then
+        FEdits[7].Text :=
+          FloatToStr(FReceiver.BlockingAndCrossModulationDb.Value)
+      else FEdits[7].Clear;
+
+      if FReceiver.IntermodulationSelectivityDb.HasValue then
+        FEdits[8].Text :=
+          FloatToStr(FReceiver.IntermodulationSelectivityDb.Value)
+      else FEdits[8].Clear;
+
+      if FReceiver.EquivalentNoiseTemperatureK.HasValue then
+        FEdits[9].Text :=
+          FloatToStr(FReceiver.EquivalentNoiseTemperatureK.Value)
+      else FEdits[9].Clear;
+
+      if FReceiver.MaxNoiseTemperatureIncreasePercent.HasValue then
+        FEdits[10].Text :=
+          FloatToStr(FReceiver.MaxNoiseTemperatureIncreasePercent.Value)
+      else FEdits[10].Clear;
+    end;
+  finally
+    FUpdating := False;
+  end;
+
+  RefreshGrid;
+end;
+
+procedure TReceiverEditor.RefreshGrid;
+var
+  I: Integer;
+  M: TReceiverMode;
+begin
+  if FReceiver = nil then
+  begin
+    FGrid.RowCount := 2;
+    FEditButton.Enabled := False;
+    FDeleteButton.Enabled := False;
+    Exit;
+  end;
+
+  FGrid.RowCount := Max(2, FReceiver.Modes.Count + 1);
+
+  for I := 0 to FReceiver.Modes.Count - 1 do
+  begin
+    M := FReceiver.Modes[I];
+
+    FGrid.Cells[0, I + 1] := M.ModeNumber;
+    FGrid.Cells[1, I + 1] := M.ReceivedEmissionClasses;
+    FGrid.Cells[2, I + 1] := M.FrequencyBandNumber;
+
+    if M.ThresholdSensitivity.HasValue then
+      FGrid.Cells[3, I + 1] :=
+        FloatToStr(M.ThresholdSensitivity.Value)
+    else FGrid.Cells[3, I + 1] := '';
+
+    if M.RealSensitivity.HasValue then
+      FGrid.Cells[4, I + 1] :=
+        FloatToStr(M.RealSensitivity.Value)
+    else FGrid.Cells[4, I + 1] := '';
+
+    if M.ProtectionRatioDb.HasValue then
+      FGrid.Cells[5, I + 1] :=
+        FloatToStr(M.ProtectionRatioDb.Value)
+    else FGrid.Cells[5, I + 1] := '';
+
+    FGrid.Cells[6, I + 1] := M.InterferenceType;
+  end;
+
+  FEditButton.Enabled := FReceiver.Modes.Count > 0;
+  FDeleteButton.Enabled := FReceiver.Modes.Count > 0;
+end;
+
+procedure TReceiverEditor.AddModeClick(Sender: TObject);
+var
+  M: TReceiverMode;
+  Dialog: TReceiverModeDialog;
+begin
+  if FReceiver = nil then
+    Exit;
+
+  M := TReceiverMode.Create;
+  try
+    Dialog := TReceiverModeDialog.Create(Self);
+    try
+      if Dialog.Execute(M) then
+      begin
+        FReceiver.Modes.Add(M);
+        M := nil;
+        RefreshGrid;
+      end;
+    finally
+      Dialog.Free;
+    end;
+  finally
+    M.Free;
+  end;
+end;
+
+procedure TReceiverEditor.EditModeClick(Sender: TObject);
+var
+  Index: Integer;
+  Dialog: TReceiverModeDialog;
+begin
+  if FReceiver = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FReceiver.Modes.Count) then
+    Exit;
+
+  Dialog := TReceiverModeDialog.Create(Self);
+  try
+    if Dialog.Execute(FReceiver.Modes[Index]) then
+      RefreshGrid;
+  finally
+    Dialog.Free;
+  end;
+end;
+
+procedure TReceiverEditor.DeleteModeClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FReceiver = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FReceiver.Modes.Count) then
+    Exit;
+
+  if MessageDlg(
+    'Удалить характеристики выбранного режима приёмника?',
+    mtConfirmation, [mbYes, mbNo], 0
+  ) <> mrYes then
+    Exit;
+
+  FReceiver.Modes.Delete(Index);
+  RefreshGrid;
+end;
+
+procedure TReceiverEditor.GridDblClick(Sender: TObject);
+begin
+  if FEditButton.Enabled then
+    EditModeClick(FEditButton);
+end;
+
 
 end.
 

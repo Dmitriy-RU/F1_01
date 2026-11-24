@@ -49,6 +49,7 @@ FGeneralEditor: TGeneralInformationEditor;
 FFrequencyBandsEditor: TFrequencyBandsEditor;
 FEquipmentCompositionEditor: TEquipmentCompositionEditor;
 FTransmitterEditor: TTransmitterEditor;
+FReceiverEditor: TReceiverEditor;
 
     procedure CreateInterface;
     procedure CreateTabs;
@@ -108,6 +109,7 @@ FEquipmentCompositionEditor.Bind(
   FDocument.EquipmentComposition
 );
 FTransmitterEditor.Bind(FDocument.Transmitter);
+FReceiverEditor.Bind(FDocument.Receiver);
 
   ///////////////
 
@@ -271,8 +273,12 @@ FEquipmentCompositionEditor.Bind(
 FTransmitterEditor := TTransmitterEditor.Create(Page);
 FTransmitterEditor.Parent := Page;
 FTransmitterEditor.Align := alClient;
-
 FTransmitterEditor.Bind(FDocument.Transmitter);
+
+FReceiverEditor := TReceiverEditor.Create(Page);
+FReceiverEditor.Parent := Page;
+FReceiverEditor.Align := alClient;
+FReceiverEditor.Bind(FDocument.Receiver);
 
   end;
 end;
@@ -324,6 +330,7 @@ FEquipmentCompositionEditor.Bind(
   FDocument.EquipmentComposition
 );
 FTransmitterEditor.Bind(FDocument.Transmitter);
+FReceiverEditor.Bind(FDocument.Receiver);
 
   ///////////////
 
