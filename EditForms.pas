@@ -291,7 +291,35 @@ procedure GridDblClick(Sender: TObject);
     procedure Bind(AAntennas: TObjectList<TAntenna>);
   end;
 
-    implementation
+type
+  TFeederEditor = class(TPanel)
+  private
+    FFeeder: TFeeder;
+    FEdits: array[0..5] of TEdit;
+
+    procedure GeneralChanged(Sender: TObject);
+    procedure LoadData;
+    procedure SaveData;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(AFeeder: TFeeder);
+  end;
+
+type
+  TEmcEditor = class(TPanel)
+  private
+    FEmcInformation: TEmcInformation;
+    FMemo: TMemo;
+    FLabel: TLabel;
+
+    procedure SaveData(Sender: TObject);
+    procedure LoadData;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(AEmcInformation: TEmcInformation);
+  end;
+
+        implementation
 
 uses
   System.SysUtils;
@@ -2936,6 +2964,185 @@ begin
   FAntennas.Delete(Index);
   RefreshGrid;
 end;
+
+/// 777
+
+constructor TFeederEditor.Create(AOwner: TComponent);
+const
+  FieldNames: array[0..5] of string = (
+    'Тип фидера (7.1)',
+    'Критическая частота (7.2)',
+    'Волновое сопротивление (7.3)',
+    'Затухание при приёме, дБ (7.4)',
+    'Затухание при передаче, дБ (7.5)',
+    'Поляризационные характеристики (7.6)'
+  );
+var
+  I, Y: Integer;
+  Lbl: TLabel;
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+
+  for I := 0 to High(FEdits) do
+  begin
+    Y := 16 + I * 48;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent := Self;
+    Lbl.Left := 16;
+    Lbl.Top := Y + 4;
+    Lbl.Caption := FieldNames[I];
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Self;
+    FEdits[I].Left := 280;
+    FEdits[I].Top := Y;
+    FEdits[I].Width := 320;
+              FEdits[I].OnExit:=GeneralChanged;
+  end;
+end;
+
+procedure TFeederEditor.Bind(AFeeder: TFeeder);
+begin
+  FFeeder := AFeeder;
+  LoadData;
+end;
+
+procedure TFeederEditor.LoadData;
+begin
+  if FFeeder = nil then
+    Exit;
+
+  FEdits[0].Text := FFeeder.FeederType;
+  FEdits[1].Text := FFeeder.CriticalFrequency;
+  FEdits[2].Text := FFeeder.WaveImpedance;
+
+  if FFeeder.AttenuationReceiveDb.HasValue then
+    FEdits[3].Text :=
+      FloatToStr(FFeeder.AttenuationReceiveDb.Value)
+  else
+    FEdits[3].Text := '';
+
+  if FFeeder.AttenuationTransmitDb.HasValue then
+    FEdits[4].Text :=
+      FloatToStr(FFeeder.AttenuationTransmitDb.Value)
+  else
+    FEdits[4].Text := '';
+
+  FEdits[5].Text := FFeeder.PolarizationCharacteristics;
+end;
+
+procedure TFeederEditor.SaveData;
+var
+  ReceiveValue, TransmitValue: TOptionalValue<Double>;
+
+  function ParseOptional(
+    AEdit: TEdit;
+    const AFieldName: string;
+    out AValue: TOptionalValue<Double>): Boolean;
+  var
+    S: string;
+    V: Double;
+  begin
+    S := Trim(AEdit.Text);
+    AValue.HasValue := False;
+    AValue.Value := 0;
+
+    if S = '' then
+      Exit(True);
+
+    if not TryStrToFloat(S, V) then
+    begin
+      MessageDlg(
+        'Некорректное числовое значение: ' + AFieldName,
+        mtError, [mbOK], 0);
+      AEdit.SetFocus;
+      Exit(False);
+    end;
+
+    AValue.HasValue := True;
+    AValue.Value := V;
+    Result := True;
+  end;
+
+begin
+  if FFeeder = nil then
+    Exit;
+
+  if not ParseOptional(
+    FEdits[3], 'Затухание при приёме', ReceiveValue) then
+    Exit;
+
+  if not ParseOptional(
+    FEdits[4], 'Затухание при передаче', TransmitValue) then
+    Exit;
+
+  FFeeder.FeederType := FEdits[0].Text;
+  FFeeder.CriticalFrequency := FEdits[1].Text;
+  FFeeder.WaveImpedance := FEdits[2].Text;
+  FFeeder.AttenuationReceiveDb := ReceiveValue;
+  FFeeder.AttenuationTransmitDb := TransmitValue;
+  FFeeder.PolarizationCharacteristics := FEdits[5].Text;
+end;
+
+procedure TFeederEditor.GeneralChanged(Sender: TObject);
+begin
+  SaveData;
+end;
+
+/// 888
+
+constructor TEmcEditor.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+
+  FLabel := TLabel.Create(Self);
+  FLabel.Parent := Self;
+  FLabel.Left := 12;
+  FLabel.Top := 12;
+  FLabel.Caption := 'Мероприятия по обеспечению ЭМС (8.1)';
+
+  FMemo := TMemo.Create(Self);
+  FMemo.Parent := Self;
+  FMemo.Left := 12;
+  FMemo.Top := 36;
+  FMemo.Width := 700;
+  FMemo.Height := 400;
+  FMemo.Anchors := [akLeft, akTop, akRight, akBottom];
+  FMemo.ScrollBars := ssVertical;
+  FMemo.WordWrap := True;
+  FMemo.WantReturns := True;
+  FMemo.OnExit := SaveData;
+end;
+
+procedure TEmcEditor.Bind(AEmcInformation: TEmcInformation);
+begin
+  FEmcInformation := AEmcInformation;
+  LoadData;
+end;
+
+procedure TEmcEditor.LoadData;
+begin
+  if FEmcInformation = nil then
+    Exit;
+
+  FMemo.Text := FEmcInformation.EmcMeasures;
+end;
+
+procedure TEmcEditor.SaveData(Sender: TObject);
+begin
+  if FEmcInformation = nil then
+    Exit;
+
+  FEmcInformation.EmcMeasures := FMemo.Text;
+end;
+
 
 end.
 
