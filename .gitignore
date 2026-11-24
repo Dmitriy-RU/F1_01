@@ -1,0 +1,7 @@
+*.dsk
+*.local
+*.identcache
+*.res
+*.dsv
+*.skincfg
+/Win32/
