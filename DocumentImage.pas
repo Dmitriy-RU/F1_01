@@ -14,11 +14,11 @@ uses
 const
   DOCUMENT_DPI = 300;
 
-  DOCUMENT_WIDTH_MM  = 210;
-  DOCUMENT_HEIGHT_MM = 297;
+  DOCUMENT_WIDTH_MM  = 297;
+  DOCUMENT_HEIGHT_MM = 210;
 
-  DOCUMENT_WIDTH_PX  = 2480;
-  DOCUMENT_HEIGHT_PX = 3508;
+  DOCUMENT_WIDTH_PX  = 3508;
+  DOCUMENT_HEIGHT_PX = 2480;
 
 type
   TDocumentPage = (dpFirst, dpSecond);
@@ -219,22 +219,25 @@ begin
   Doc := TDocumentImage.Create;
   try
     // Пока без фонового шаблона
-    Doc.DrawTextMm(
-      dpFirst,
-      30, 30,
-      'Проверка печати',
-      14,
-      'Arial',
-      clBlack,
-      [fsBold]
-    );
+//    Doc.DrawTextMm(
+//      dpFirst,
+//      30, 30,
+//      'Проверка печати',
+//      14,
+//      'Arial',
+//      clBlack,
+//      [fsBold]
+//    );
+//
+//    Doc.DrawTextMm(
+//      dpSecond,
+//      30, 30,
+//      'Вторая страница',
+//      14
+//    );
 
-    Doc.DrawTextMm(
-      dpSecond,
-      30, 30,
-      'Вторая страница',
-      14
-    );
+Doc.LoadBackground(dpFirst, 'BlankPage1.png');
+Doc.LoadBackground(dpSecond, 'BlankPage2.png');
 
     Doc.SaveDocumentImages(BasePath + 'Output');
   finally
