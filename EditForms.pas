@@ -105,6 +105,56 @@ type
   end;
 
 
+
+type
+  TEquipmentModeDialog = class(TForm)
+  private
+    FEdits: array[0..12] of TEdit;
+
+    procedure SetModeValues(AMode: TEquipmentMode);
+    procedure GetModeValues(AMode: TEquipmentMode);
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    function Execute(AMode: TEquipmentMode): Boolean;
+  end;
+
+  TEquipmentCompositionEditor = class(TPanel)
+  private
+    FComposition: TEquipmentComposition;
+
+    FTransmitterEdit: TEdit;
+    FReceiverEdit: TEdit;
+    FAntennaEdit: TEdit;
+    FDiagramEdit: TEdit;
+
+    FGrid: TStringGrid;
+    FAddButton: TButton;
+    FEditButton: TButton;
+    FDeleteButton: TButton;
+
+    FUpdating: Boolean;
+
+    function AddHeaderEdit(
+      const ACaption: string;
+      ATop, ATag: Integer
+    ): TEdit;
+
+    procedure HeaderChanged(Sender: TObject);
+
+    procedure AddModeClick(Sender: TObject);
+    procedure EditModeClick(Sender: TObject);
+    procedure DeleteModeClick(Sender: TObject);
+    procedure GridDblClick(Sender: TObject);
+
+    procedure RefreshGrid;
+
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(AComposition: TEquipmentComposition);
+  end;
+
+
 implementation
 
 uses
@@ -594,6 +644,410 @@ begin
 
   if View.EditButton.Enabled then
     EditBandClick(View.EditButton);
+end;
+
+
+constructor TEquipmentModeDialog.Create(AOwner: TComponent);
+const
+  Captions: array[0..12] of string = (
+    '3.5. Номер режима',
+    '3.6. Краткая характеристика режима',
+    '3.6. Тип передачи',
+    '3.7. Номер полосы частот',
+    '3.8. Номер элементарного оборудования',
+    '3.9. Номер элементарной антенны',
+    '3.10. Номер связанной антенны',
+    '3.11. Наименование связанного оборудования',
+    '3.12. Наименование характеристики',
+    '3.13. Значение характеристики',
+    '3.14. Единица измерения',
+    '',
+    ''
+  );
+var
+  Scroll: TScrollBox;
+  L: TLabel;
+  B: TButton;
+  I: Integer;
+  Y: Integer;
+begin
+  inherited CreateNew(AOwner);
+
+  Caption := 'Режим работы';
+  BorderStyle := bsDialog;
+  Position := poOwnerFormCenter;
+  ClientWidth := 520;
+  ClientHeight := 560;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.SetBounds(0, 0, ClientWidth, 490);
+  Scroll.Anchors := [akLeft, akTop, akRight, akBottom];
+
+  Y := 12;
+
+  for I := 0 to 10 do
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := Scroll;
+    L.Caption := Captions[I];
+    L.SetBounds(16, Y, 470, 18);
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].SetBounds(16, Y + 21, 470, 25);
+    FEdits[I].Anchors := [akLeft, akTop, akRight];
+
+    Inc(Y, 58);
+  end;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'OK';
+  B.ModalResult := mrOK;
+  B.SetBounds(330, 510, 80, 30);
+  B.Default := True;
+
+  B := TButton.Create(Self);
+  B.Parent := Self;
+  B.Caption := 'Отмена';
+  B.ModalResult := mrCancel;
+  B.SetBounds(420, 510, 80, 30);
+  B.Cancel := True;
+end;
+
+procedure TEquipmentModeDialog.SetModeValues(
+  AMode: TEquipmentMode
+);
+begin
+  FEdits[0].Text := AMode.ModeNumber;
+  FEdits[1].Text := AMode.ModeDescription;
+  FEdits[2].Text := AMode.TransmissionType;
+  FEdits[3].Text := AMode.FrequencyBandNumber;
+  FEdits[4].Text := AMode.ElementaryEquipmentNumber;
+  FEdits[5].Text := AMode.ElementaryAntennaNumber;
+  FEdits[6].Text := AMode.RelatedAntennaNumber;
+  FEdits[7].Text := AMode.RelatedEquipmentName;
+  FEdits[8].Text := AMode.CharacteristicName;
+  FEdits[9].Text := AMode.CharacteristicValue;
+  FEdits[10].Text := AMode.CharacteristicUnit;
+end;
+
+procedure TEquipmentModeDialog.GetModeValues(
+  AMode: TEquipmentMode
+);
+begin
+  AMode.ModeNumber := Trim(FEdits[0].Text);
+  AMode.ModeDescription := Trim(FEdits[1].Text);
+  AMode.TransmissionType := Trim(FEdits[2].Text);
+  AMode.FrequencyBandNumber := Trim(FEdits[3].Text);
+  AMode.ElementaryEquipmentNumber := Trim(FEdits[4].Text);
+  AMode.ElementaryAntennaNumber := Trim(FEdits[5].Text);
+  AMode.RelatedAntennaNumber := Trim(FEdits[6].Text);
+  AMode.RelatedEquipmentName := Trim(FEdits[7].Text);
+  AMode.CharacteristicName := Trim(FEdits[8].Text);
+  AMode.CharacteristicValue := Trim(FEdits[9].Text);
+  AMode.CharacteristicUnit := Trim(FEdits[10].Text);
+end;
+
+function TEquipmentModeDialog.Execute(
+  AMode: TEquipmentMode
+): Boolean;
+begin
+  SetModeValues(AMode);
+
+  repeat
+    Result := ShowModal = mrOK;
+
+    if not Result then
+      Exit;
+
+    if Trim(FEdits[0].Text) = '' then
+    begin
+      MessageDlg(
+        'Укажите номер режима.',
+        mtWarning, [mbOK], 0
+      );
+      Continue;
+    end;
+
+    GetModeValues(AMode);
+    Exit(True);
+  until False;
+end;
+
+
+constructor TEquipmentCompositionEditor.Create(
+  AOwner: TComponent
+);
+var
+  L: TLabel;
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+
+  FComposition := nil;
+  FUpdating := False;
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := '3.1. Обозначение передатчика';
+  L.SetBounds(16, 12, 300, 18);
+
+  FTransmitterEdit := AddHeaderEdit('', 34, 1);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := '3.2. Обозначение приёмника';
+  L.SetBounds(16, 72, 300, 18);
+
+  FReceiverEdit := AddHeaderEdit('', 94, 2);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := '3.3. Обозначение антенны';
+  L.SetBounds(16, 132, 300, 18);
+
+  FAntennaEdit := AddHeaderEdit('', 154, 3);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := '3.4. Лист структурной схемы';
+  L.SetBounds(16, 192, 300, 18);
+
+  FDiagramEdit := AddHeaderEdit('', 214, 4);
+
+  L := TLabel.Create(Self);
+  L.Parent := Self;
+  L.Caption := 'Режимы работы';
+  L.SetBounds(16, 258, 300, 20);
+
+  FGrid := TStringGrid.Create(Self);
+  FGrid.Parent := Self;
+  FGrid.SetBounds(16, 282, 900, 300);
+  FGrid.Anchors := [akLeft, akTop, akRight, akBottom];
+
+  FGrid.ColCount := 6;
+  FGrid.RowCount := 2;
+  FGrid.FixedRows := 1;
+  FGrid.FixedCols := 0;
+
+  FGrid.Cells[0, 0] := 'Режим';
+  FGrid.Cells[1, 0] := 'Описание';
+  FGrid.Cells[2, 0] := 'Полоса';
+  FGrid.Cells[3, 0] := 'Характеристика';
+  FGrid.Cells[4, 0] := 'Значение';
+  FGrid.Cells[5, 0] := 'Единица';
+
+  FGrid.ColWidths[0] := 65;
+  FGrid.ColWidths[1] := 190;
+  FGrid.ColWidths[2] := 65;
+  FGrid.ColWidths[3] := 190;
+  FGrid.ColWidths[4] := 100;
+  FGrid.ColWidths[5] := 75;
+
+  FGrid.Options := [
+    goFixedVertLine,
+    goFixedHorzLine,
+    goVertLine,
+    goHorzLine,
+    goRowSelect
+  ];
+
+  FGrid.OnDblClick := GridDblClick;
+
+  FAddButton := TButton.Create(Self);
+  FAddButton.Parent := Self;
+  FAddButton.Caption := 'Добавить режим';
+  FAddButton.SetBounds(16, 594, 120, 30);
+  FAddButton.Anchors := [akLeft, akBottom];
+  FAddButton.OnClick := AddModeClick;
+
+  FEditButton := TButton.Create(Self);
+  FEditButton.Parent := Self;
+  FEditButton.Caption := 'Изменить';
+  FEditButton.SetBounds(146, 594, 100, 30);
+  FEditButton.Anchors := [akLeft, akBottom];
+  FEditButton.OnClick := EditModeClick;
+
+  FDeleteButton := TButton.Create(Self);
+  FDeleteButton.Parent := Self;
+  FDeleteButton.Caption := 'Удалить';
+  FDeleteButton.SetBounds(256, 594, 100, 30);
+  FDeleteButton.Anchors := [akLeft, akBottom];
+  FDeleteButton.OnClick := DeleteModeClick;
+end;
+
+function TEquipmentCompositionEditor.AddHeaderEdit(
+  const ACaption: string;
+  ATop, ATag: Integer
+): TEdit;
+begin
+  Result := TEdit.Create(Self);
+  Result.Parent := Self;
+  Result.SetBounds(16, ATop, 700, 25);
+  Result.Anchors := [akLeft, akTop, akRight];
+  Result.Tag := ATag;
+  Result.OnChange := HeaderChanged;
+end;
+
+procedure TEquipmentCompositionEditor.HeaderChanged(Sender: TObject);
+begin
+  if FUpdating or (FComposition = nil) then
+    Exit;
+
+  case TEdit(Sender).Tag of
+    1: FComposition.TransmitterReference := TEdit(Sender).Text;
+    2: FComposition.ReceiverReference := TEdit(Sender).Text;
+    3: FComposition.AntennaReference := TEdit(Sender).Text;
+    4: FComposition.StructuralDiagramSheet := TEdit(Sender).Text;
+  end;
+end;
+
+procedure TEquipmentCompositionEditor.Bind(
+  AComposition: TEquipmentComposition
+);
+begin
+  FUpdating := True;
+  try
+    FComposition := AComposition;
+
+    if FComposition = nil then
+    begin
+      FTransmitterEdit.Clear;
+      FReceiverEdit.Clear;
+      FAntennaEdit.Clear;
+      FDiagramEdit.Clear;
+    end
+    else
+    begin
+      FTransmitterEdit.Text := FComposition.TransmitterReference;
+      FReceiverEdit.Text := FComposition.ReceiverReference;
+      FAntennaEdit.Text := FComposition.AntennaReference;
+      FDiagramEdit.Text := FComposition.StructuralDiagramSheet;
+    end;
+  finally
+    FUpdating := False;
+  end;
+
+  RefreshGrid;
+end;
+
+procedure TEquipmentCompositionEditor.RefreshGrid;
+var
+  I: Integer;
+  Mode: TEquipmentMode;
+begin
+  if FComposition = nil then
+  begin
+    FGrid.RowCount := 2;
+    FGrid.Cells[0, 1] := '';
+    FGrid.Cells[1, 1] := '';
+    FGrid.Cells[2, 1] := '';
+    FGrid.Cells[3, 1] := '';
+    FGrid.Cells[4, 1] := '';
+    FGrid.Cells[5, 1] := '';
+    FEditButton.Enabled := False;
+    FDeleteButton.Enabled := False;
+    Exit;
+  end;
+
+  FGrid.RowCount := Max(2, FComposition.Modes.Count + 1);
+
+  for I := 0 to FComposition.Modes.Count - 1 do
+  begin
+    Mode := FComposition.Modes[I];
+
+    FGrid.Cells[0, I + 1] := Mode.ModeNumber;
+    FGrid.Cells[1, I + 1] := Mode.ModeDescription;
+    FGrid.Cells[2, I + 1] := Mode.FrequencyBandNumber;
+    FGrid.Cells[3, I + 1] := Mode.CharacteristicName;
+    FGrid.Cells[4, I + 1] := Mode.CharacteristicValue;
+    FGrid.Cells[5, I + 1] := Mode.CharacteristicUnit;
+  end;
+
+  FEditButton.Enabled := FComposition.Modes.Count > 0;
+  FDeleteButton.Enabled := FComposition.Modes.Count > 0;
+end;
+
+procedure TEquipmentCompositionEditor.AddModeClick(Sender: TObject);
+var
+  Mode: TEquipmentMode;
+  Dialog: TEquipmentModeDialog;
+begin
+  if FComposition = nil then
+    Exit;
+
+  Mode := TEquipmentMode.Create;
+  try
+    Dialog := TEquipmentModeDialog.Create(Self);
+    try
+      if Dialog.Execute(Mode) then
+      begin
+        FComposition.Modes.Add(Mode);
+        Mode := nil;
+        RefreshGrid;
+      end;
+    finally
+      Dialog.Free;
+    end;
+  finally
+    Mode.Free;
+  end;
+end;
+
+procedure TEquipmentCompositionEditor.EditModeClick(Sender: TObject);
+var
+  Index: Integer;
+  Dialog: TEquipmentModeDialog;
+begin
+  if FComposition = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FComposition.Modes.Count) then
+    Exit;
+
+  Dialog := TEquipmentModeDialog.Create(Self);
+  try
+    if Dialog.Execute(FComposition.Modes[Index]) then
+      RefreshGrid;
+  finally
+    Dialog.Free;
+  end;
+end;
+
+procedure TEquipmentCompositionEditor.DeleteModeClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FComposition = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FComposition.Modes.Count) then
+    Exit;
+
+  if MessageDlg(
+    'Удалить выбранный режим?',
+    mtConfirmation,
+    [mbYes, mbNo],
+    0
+  ) <> mrYes then
+    Exit;
+
+  FComposition.Modes.Delete(Index);
+  RefreshGrid;
+end;
+
+procedure TEquipmentCompositionEditor.GridDblClick(Sender: TObject);
+begin
+  if FEditButton.Enabled then
+    EditModeClick(FEditButton);
 end;
 
 end.
