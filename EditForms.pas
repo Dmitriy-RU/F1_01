@@ -257,7 +257,37 @@ type
   end;
 
 
-  implementation
+type
+  TAntennaDialog = class(TForm)
+  private
+    FEdits: array[0..14] of TEdit;
+    function GetEditValue(AIndex: Integer): string;
+    procedure SetEditValue(AIndex: Integer; const AValue: string);
+    procedure LoadAntenna(AAntenna: TAntenna);
+    function SaveAntenna(AAntenna: TAntenna): Boolean;
+  public
+    constructor Create(AOwner: TComponent); override;
+    function Execute(AAntenna: TAntenna): Boolean;
+  end;
+
+  TAntennaEditor = class(TPanel)
+  private
+    FAntennas: TObjectList<TAntenna>;
+    FGrid: TStringGrid;
+    FAddButton: TButton;
+    FEditButton: TButton;
+    FDeleteButton: TButton;
+
+    procedure RefreshGrid;
+    procedure AddAntenna;
+    procedure EditAntenna;
+    procedure DeleteAntenna;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(AAntennas: TObjectList<TAntenna>);
+  end;
+
+    implementation
 
 uses
   System.SysUtils;
@@ -2500,6 +2530,217 @@ procedure TReceiverEditor.GridDblClick(Sender: TObject);
 begin
   if FEditButton.Enabled then
     EditModeClick(FEditButton);
+end;
+
+// 6666
+
+constructor TAntennaDialog.Create(AOwner: TComponent);
+const
+  FieldNames: array[0..14] of string = (
+    'Номер антенны (6.0)',
+    'Назначение (6.1)',
+    'Тип антенны (6.2)',
+    'Габариты (6.3)',
+    'Номера режимов (ссылка на 3.5)',
+    'Ссылка на диаграмму направленности (6.4)',
+    'Пространственное положение ДН (6.5)',
+    'Частота, Гц (6.6)',
+    'Коэффициент усиления, дБ (6.7)',
+    'Ширина ДН по горизонтали, град. (6.8)',
+    'Ширина ДН по вертикали, град. (6.9)',
+    'Угловой сектор, град. (6.10)',
+    'Уровень боковых лепестков, дБ (6.11)',
+    'Точность наведения, град. (6.12)',
+    'Зона покрытия (6.13)'
+  );
+var
+  Scroll: TScrollBox;
+  Lbl: TLabel;
+  I, Y: Integer;
+  BtnOK, BtnCancel: TButton;
+begin
+  inherited Create(AOwner);
+
+  Caption := 'Характеристики антенны';
+  Width := 660;
+  Height := 720;
+  Position := poScreenCenter;
+  BorderStyle := bsSizeable;
+
+  Scroll := TScrollBox.Create(Self);
+  Scroll.Parent := Self;
+  Scroll.Align := alClient;
+  Scroll.VertScrollBar.Tracking := True;
+
+  for I := 0 to High(FEdits) do
+  begin
+    Y := 12 + I * 42;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent := Scroll;
+    Lbl.Left := 12;
+    Lbl.Top := Y + 3;
+    Lbl.Caption := FieldNames[I];
+
+    FEdits[I] := TEdit.Create(Self);
+    FEdits[I].Parent := Scroll;
+    FEdits[I].Left := 270;
+    FEdits[I].Top := Y;
+    FEdits[I].Width := 340;
+  end;
+
+  BtnOK := TButton.Create(Self);
+  BtnOK.Parent := Self;
+  BtnOK.Align := alBottom;
+  BtnOK.Height := 36;
+  BtnOK.Caption := 'ОК';
+  BtnOK.ModalResult := mrNone;
+  BtnOK.Default := True;
+  BtnOK.OnClick :=
+    procedure(Sender: TObject)
+    begin
+      ModalResult := mrOk;
+    end;
+
+  BtnCancel := TButton.Create(Self);
+  BtnCancel.Parent := Self;
+  BtnCancel.Align := alBottom;
+  BtnCancel.Height := 36;
+  BtnCancel.Caption := 'Отмена';
+  BtnCancel.Cancel := True;
+  BtnCancel.ModalResult := mrCancel;
+end;
+
+function TAntennaDialog.GetEditValue(AIndex: Integer): string;
+begin
+  Result := FEdits[AIndex].Text;
+end;
+
+procedure TAntennaDialog.SetEditValue(
+  AIndex: Integer; const AValue: string);
+begin
+  FEdits[AIndex].Text := AValue;
+end;
+
+procedure TAntennaDialog.LoadAntenna(AAntenna: TAntenna);
+begin
+  SetEditValue(0, AAntenna.AntennaNumber);
+  SetEditValue(1, AAntenna.AntennaPurpose);
+  SetEditValue(2, AAntenna.AntennaType);
+  SetEditValue(3, AAntenna.AntennaDimensions);
+  SetEditValue(4, AAntenna.ModeNumbers);
+  SetEditValue(5, AAntenna.BeamReference);
+  SetEditValue(6, AAntenna.BeamSpatialPosition);
+
+  if AAntenna.FrequencyHz.HasValue then
+    SetEditValue(7, FloatToStr(AAntenna.FrequencyHz.Value))
+  else
+    SetEditValue(7, '');
+
+  if AAntenna.GainDb.HasValue then
+    SetEditValue(8, FloatToStr(AAntenna.GainDb.Value))
+  else
+    SetEditValue(8, '');
+
+  if AAntenna.BeamwidthHorizontalDeg.HasValue then
+    SetEditValue(9, FloatToStr(AAntenna.BeamwidthHorizontalDeg.Value))
+  else
+    SetEditValue(9, '');
+
+  if AAntenna.BeamwidthVerticalDeg.HasValue then
+    SetEditValue(10, FloatToStr(AAntenna.BeamwidthVerticalDeg.Value))
+  else
+    SetEditValue(10, '');
+
+  SetEditValue(11, AAntenna.AngularSectorDeg);
+
+  if AAntenna.SideLobeLevelDb.HasValue then
+    SetEditValue(12, FloatToStr(AAntenna.SideLobeLevelDb.Value))
+  else
+    SetEditValue(12, '');
+
+  if AAntenna.PointingAccuracyDeg.HasValue then
+    SetEditValue(13, FloatToStr(AAntenna.PointingAccuracyDeg.Value))
+  else
+    SetEditValue(13, '');
+
+  SetEditValue(14, AAntenna.CoverageArea);
+end;
+
+function TAntennaDialog.SaveAntenna(AAntenna: TAntenna): Boolean;
+var
+  Frequency, Gain, Horizontal, Vertical, SideLobe, Accuracy:
+    TOptionalValue<Double>;
+
+  function ReadOptionalFloat(
+    AIndex: Integer;
+    const AFieldName: string;
+    out AValue: TOptionalValue<Double>): Boolean;
+  var
+    S: string;
+    V: Double;
+  begin
+    S := Trim(GetEditValue(AIndex));
+    AValue.HasValue := False;
+    AValue.Value := 0;
+
+    if S = '' then
+      Exit(True);
+
+    if not TryStrToFloat(S, V) then
+    begin
+      MessageDlg(
+        'Некорректное числовое значение: ' + AFieldName,
+        mtError, [mbOK], 0);
+      FEdits[AIndex].SetFocus;
+      Exit(False);
+    end;
+
+    AValue.HasValue := True;
+    AValue.Value := V;
+    Result := True;
+  end;
+
+begin
+  Result := False;
+
+  // Сначала проверяем все числа. Модель пока не изменяется.
+  if not ReadOptionalFloat(7, 'Частота', Frequency) then Exit;
+  if not ReadOptionalFloat(8, 'Коэффициент усиления', Gain) then Exit;
+  if not ReadOptionalFloat(9, 'Ширина ДН по горизонтали', Horizontal) then Exit;
+  if not ReadOptionalFloat(10, 'Ширина ДН по вертикали', Vertical) then Exit;
+  if not ReadOptionalFloat(12, 'Уровень боковых лепестков', SideLobe) then Exit;
+  if not ReadOptionalFloat(13, 'Точность наведения', Accuracy) then Exit;
+
+  // После успешной проверки переносим значения в объект.
+  AAntenna.AntennaNumber := GetEditValue(0);
+  AAntenna.AntennaPurpose := GetEditValue(1);
+  AAntenna.AntennaType := GetEditValue(2);
+  AAntenna.AntennaDimensions := GetEditValue(3);
+  AAntenna.ModeNumbers := GetEditValue(4);
+  AAntenna.BeamReference := GetEditValue(5);
+  AAntenna.BeamSpatialPosition := GetEditValue(6);
+
+  AAntenna.FrequencyHz := Frequency;
+  AAntenna.GainDb := Gain;
+  AAntenna.BeamwidthHorizontalDeg := Horizontal;
+  AAntenna.BeamwidthVerticalDeg := Vertical;
+
+  AAntenna.AngularSectorDeg := GetEditValue(11);
+  AAntenna.SideLobeLevelDb := SideLobe;
+  AAntenna.PointingAccuracyDeg := Accuracy;
+  AAntenna.CoverageArea := GetEditValue(14);
+
+  Result := True;
+end;
+
+function TAntennaDialog.Execute(AAntenna: TAntenna): Boolean;
+begin
+  LoadAntenna(AAntenna);
+  Result := ShowModal = mrOk;
+
+  if Result then
+    Result := SaveAntenna(AAntenna);
 end;
 
 
