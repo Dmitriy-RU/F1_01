@@ -46,6 +46,7 @@ type
     FSaveDialog: TSaveDialog;
 
 FGeneralEditor: TGeneralInformationEditor;
+FFrequencyBandsEditor: TFrequencyBandsEditor;
 
     procedure CreateInterface;
     procedure CreateTabs;
@@ -97,6 +98,10 @@ begin
 
   //////////////////// !!!
   FGeneralEditor.Bind(FDocument.GeneralInformation);
+FFrequencyBandsEditor.Bind(
+  FDocument.TransmitterFrequencyBands,
+  FDocument.ReceiverFrequencyBands
+);
   ///////////////
 
 end;
@@ -235,12 +240,18 @@ begin
 //    LabelControl.Top := 20;
 //    LabelControl.Caption :=
 //      'Редактор раздела "' + TAB_NAMES[I] + '" будет добавлен на следующем этапе.';
+
 FGeneralEditor := TGeneralInformationEditor.Create(Page);
 FGeneralEditor.Parent := Page;
 FGeneralEditor.Init;
 FGeneralEditor.Align := alClient;
 FGeneralEditor.Bind(FDocument.GeneralInformation);
 
+FFrequencyBandsEditor := TFrequencyBandsEditor.Create(Page);
+FFrequencyBandsEditor.Parent := Page;
+FFrequencyBandsEditor.Init;
+FFrequencyBandsEditor.Align := alClient;
+FFrequencyBandsEditor.Bind(FDocument.TransmitterFrequencyBands,  FDocument.ReceiverFrequencyBands);
   end;
 end;
 
@@ -283,6 +294,11 @@ begin
 
   //////////////////// !!!
   FGeneralEditor.Bind(FDocument.GeneralInformation);
+FFrequencyBandsEditor.Bind(
+  FDocument.TransmitterFrequencyBands,
+  FDocument.ReceiverFrequencyBands
+);
+
   ///////////////
 
 
