@@ -53,6 +53,7 @@ FReceiverEditor: TReceiverEditor;
 FAntennaEditor: TAntennaEditor;
 FFeederEditor: TFeederEditor;
 FEmcEditor: TEmcEditor;
+FOrganizationsEditor: TOrganizationsEditor;
 
     procedure CreateInterface;
     procedure CreateTabs;
@@ -116,6 +117,13 @@ FReceiverEditor.Bind(FDocument.Receiver);
 FAntennaEditor.Bind(FDocument.Antennas);
 FFeederEditor.Bind(FDocument.Feeder);
 FEmcEditor.Bind(FDocument.EmcInformation);
+
+FOrganizationsEditor.Bind(
+  FDocument.Customer,
+  FDocument.Developer,
+  FDocument.Manufacturer
+);
+
   ///////////////
 
 end;
@@ -300,6 +308,17 @@ FEmcEditor.Parent := Page;
 FEmcEditor.Align := alClient;
 FEmcEditor.Bind(FDocument.EmcInformation);
 
+FOrganizationsEditor := TOrganizationsEditor.Create(Page);
+FOrganizationsEditor.Parent := Page;
+FOrganizationsEditor.Align := alClient;
+
+FOrganizationsEditor.Bind(
+  FDocument.Customer,
+  FDocument.Developer,
+  FDocument.Manufacturer
+);
+
+
 end;
 end;
 
@@ -354,6 +373,12 @@ FReceiverEditor.Bind(FDocument.Receiver);
 FAntennaEditor.Bind(FDocument.Antennas);
 FFeederEditor.Bind(FDocument.Feeder);
 FEmcEditor.Bind(FDocument.EmcInformation);
+
+FOrganizationsEditor.Bind(
+  FDocument.Customer,
+  FDocument.Developer,
+  FDocument.Manufacturer
+);
 
   ///////////////
 

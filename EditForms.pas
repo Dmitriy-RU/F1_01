@@ -319,7 +319,28 @@ type
     procedure Bind(AEmcInformation: TEmcInformation);
   end;
 
-        implementation
+type
+  TOrganizationsEditor = class(TScrollBox)
+  private
+    FCustomer: TOrganizationInfo;
+    FDeveloper: TOrganizationInfo;
+    FManufacturer: TOrganizationInfo;
+
+    FEdits: array[0..2, 0..2] of TMemo;
+
+    procedure SaveData(Sender: TObject);
+    procedure LoadData;
+    procedure CreateOrganizationBlock(
+      AIndex, ATop: Integer;
+      const ATitle: string);
+    function GetOrganization(AIndex: Integer): TOrganizationInfo;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Bind(
+      ACustomer, ADeveloper, AManufacturer: TOrganizationInfo);
+  end;
+
+          implementation
 
 uses
   System.SysUtils;
@@ -3141,6 +3162,116 @@ begin
     Exit;
 
   FEmcInformation.EmcMeasures := FMemo.Text;
+end;
+
+// 999
+
+constructor TOrganizationsEditor.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  VertScrollBar.Tracking := True;
+
+  CreateOrganizationBlock(0, 12, 'Заказчик');
+  CreateOrganizationBlock(1, 270, 'Разработчик');
+  CreateOrganizationBlock(2, 528, 'Изготовитель');
+end;
+
+procedure TOrganizationsEditor.CreateOrganizationBlock(
+  AIndex, ATop: Integer;
+  const ATitle: string);
+const
+  FieldNames: array[0..2] of string = (
+    'Наименование организации',
+    'Адрес и телефон',
+    'Сведения о подписи'
+  );
+var
+  Group: TGroupBox;
+  Lbl: TLabel;
+  I, Y: Integer;
+begin
+  Group := TGroupBox.Create(Self);
+  Group.Parent := Self;
+  Group.Caption := ATitle;
+  Group.SetBounds(12, ATop, 720, 245);
+
+  for I := 0 to 2 do
+  begin
+    Y := 28 + I * 68;
+
+    Lbl := TLabel.Create(Self);
+    Lbl.Parent := Group;
+    Lbl.Left := 12;
+    Lbl.Top := Y + 3;
+    Lbl.Caption := FieldNames[I];
+
+    FEdits[AIndex, I] := TMemo.Create(Self);
+    FEdits[AIndex, I].Parent := Group;
+    FEdits[AIndex, I].SetBounds(190, Y, 510, 54);
+    FEdits[AIndex, I].ScrollBars := ssVertical;
+    FEdits[AIndex, I].WordWrap := True;
+    FEdits[AIndex, I].OnExit := SaveData;
+  end;
+end;
+
+function TOrganizationsEditor.GetOrganization(
+  AIndex: Integer): TOrganizationInfo;
+begin
+  case AIndex of
+    0: Result := FCustomer;
+    1: Result := FDeveloper;
+    2: Result := FManufacturer;
+  else
+    Result := nil;
+  end;
+end;
+
+procedure TOrganizationsEditor.Bind(
+  ACustomer, ADeveloper, AManufacturer: TOrganizationInfo);
+begin
+  FCustomer := ACustomer;
+  FDeveloper := ADeveloper;
+  FManufacturer := AManufacturer;
+
+  LoadData;
+end;
+
+procedure TOrganizationsEditor.LoadData;
+var
+  I: Integer;
+  Org: TOrganizationInfo;
+begin
+  for I := 0 to 2 do
+  begin
+    Org := GetOrganization(I);
+
+    if Org = nil then
+      Continue;
+
+    FEdits[I, 0].Text := Org.OrganizationName;
+    FEdits[I, 1].Text := Org.AddressAndPhone;
+    FEdits[I, 2].Text := Org.SignatureDetails;
+  end;
+end;
+
+procedure TOrganizationsEditor.SaveData(Sender: TObject);
+var
+  I: Integer;
+  Org: TOrganizationInfo;
+begin
+  for I := 0 to 2 do
+  begin
+    Org := GetOrganization(I);
+
+    if Org = nil then
+      Continue;
+
+    Org.OrganizationName := FEdits[I, 0].Text;
+    Org.AddressAndPhone := FEdits[I, 1].Text;
+    Org.SignatureDetails := FEdits[I, 2].Text;
+  end;
 end;
 
 
