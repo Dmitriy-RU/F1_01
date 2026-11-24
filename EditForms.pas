@@ -261,10 +261,12 @@ type
   TAntennaDialog = class(TForm)
   private
     FEdits: array[0..14] of TEdit;
+FAntenna: TAntenna;
     function GetEditValue(AIndex: Integer): string;
     procedure SetEditValue(AIndex: Integer; const AValue: string);
     procedure LoadAntenna(AAntenna: TAntenna);
     function SaveAntenna(AAntenna: TAntenna): Boolean;
+procedure AcceptClick(Sender: TObject);
   public
     constructor Create(AOwner: TComponent); override;
     function Execute(AAntenna: TAntenna): Boolean;
@@ -279,9 +281,11 @@ type
     FDeleteButton: TButton;
 
     procedure RefreshGrid;
-    procedure AddAntenna;
-    procedure EditAntenna;
-    procedure DeleteAntenna;
+procedure AddAntenna(Sender: TObject);
+procedure EditAntenna(Sender: TObject);
+procedure DeleteAntenna(Sender: TObject);
+procedure GridDblClick(Sender: TObject);
+
   public
     constructor Create(AOwner: TComponent); override;
     procedure Bind(AAntennas: TObjectList<TAntenna>);
@@ -2559,7 +2563,7 @@ var
   I, Y: Integer;
   BtnOK, BtnCancel: TButton;
 begin
-  inherited Create(AOwner);
+  inherited CreateNew(AOwner);
 
   Caption := 'Характеристики антенны';
   Width := 660;
@@ -2596,11 +2600,7 @@ begin
   BtnOK.Caption := 'ОК';
   BtnOK.ModalResult := mrNone;
   BtnOK.Default := True;
-  BtnOK.OnClick :=
-    procedure(Sender: TObject)
-    begin
-      ModalResult := mrOk;
-    end;
+  BtnOK.OnClick := AcceptClick;
 
   BtnCancel := TButton.Create(Self);
   BtnCancel.Parent := Self;
@@ -2609,6 +2609,12 @@ begin
   BtnCancel.Caption := 'Отмена';
   BtnCancel.Cancel := True;
   BtnCancel.ModalResult := mrCancel;
+end;
+
+procedure TAntennaDialog.AcceptClick(Sender: TObject);
+begin
+  if SaveAntenna(FAntenna) then
+    ModalResult := mrOk;
 end;
 
 function TAntennaDialog.GetEditValue(AIndex: Integer): string;
@@ -2736,13 +2742,200 @@ end;
 
 function TAntennaDialog.Execute(AAntenna: TAntenna): Boolean;
 begin
+  FAntenna := AAntenna;
   LoadAntenna(AAntenna);
   Result := ShowModal = mrOk;
-
-  if Result then
-    Result := SaveAntenna(AAntenna);
 end;
 
+
+constructor TAntennaEditor.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+
+  Align := alClient;
+  BevelOuter := bvNone;
+
+  FGrid := TStringGrid.Create(Self);
+  FGrid.Parent := Self;
+  FGrid.Align := alClient;
+  FGrid.FixedRows := 1;
+  FGrid.FixedCols := 0;
+  FGrid.ColCount := 8;
+  FGrid.RowCount := 2;
+  FGrid.Options := FGrid.Options + [goRowSelect] - [goEditing];
+
+  FGrid.Cells[0, 0] := '№';
+  FGrid.Cells[1, 0] := 'Назначение';
+  FGrid.Cells[2, 0] := 'Тип';
+  FGrid.Cells[3, 0] := 'Режимы';
+  FGrid.Cells[4, 0] := 'Частота, Гц';
+  FGrid.Cells[5, 0] := 'Усиление, дБ';
+  FGrid.Cells[6, 0] := 'Ширина ДН гор.';
+  FGrid.Cells[7, 0] := 'Ширина ДН верт.';
+
+  FGrid.ColWidths[0] := 55;
+  FGrid.ColWidths[1] := 150;
+  FGrid.ColWidths[2] := 120;
+  FGrid.ColWidths[3] := 90;
+  FGrid.ColWidths[4] := 110;
+  FGrid.ColWidths[5] := 90;
+  FGrid.ColWidths[6] := 110;
+  FGrid.ColWidths[7] := 110;
+
+  FGrid.OnDblClick := GridDblClick;
+
+  // Панель кнопок располагается снизу.
+  with TPanel.Create(Self) do
+  begin
+    Parent := Self;
+    Align := alBottom;
+    Height := 42;
+    BevelOuter := bvNone;
+
+    FAddButton := TButton.Create(Self);
+    FAddButton.Parent := Self;
+    FAddButton.SetBounds(8, 5, 100, 30);
+    FAddButton.Caption := 'Добавить';
+    FAddButton.OnClick := AddAntenna;
+
+    FEditButton := TButton.Create(Self);
+    FEditButton.Parent := Self;
+    FEditButton.SetBounds(116, 5, 100, 30);
+    FEditButton.Caption := 'Изменить';
+    FEditButton.OnClick := EditAntenna;
+
+    FDeleteButton := TButton.Create(Self);
+    FDeleteButton.Parent := Self;
+    FDeleteButton.SetBounds(224, 5, 100, 30);
+    FDeleteButton.Caption := 'Удалить';
+    FDeleteButton.OnClick := DeleteAntenna;
+  end;
+end;
+
+procedure TAntennaEditor.Bind(AAntennas: TObjectList<TAntenna>);
+begin
+  FAntennas := AAntennas;
+  RefreshGrid;
+end;
+
+procedure TAntennaEditor.RefreshGrid;
+var
+  I: Integer;
+  A: TAntenna;
+begin
+  if FAntennas = nil then
+    Exit;
+
+  FGrid.RowCount := Max(2, FAntennas.Count + 1);
+
+  for I := 0 to FAntennas.Count - 1 do
+  begin
+    A := FAntennas[I];
+
+    FGrid.Cells[0, I + 1] := A.AntennaNumber;
+    FGrid.Cells[1, I + 1] := A.AntennaPurpose;
+    FGrid.Cells[2, I + 1] := A.AntennaType;
+    FGrid.Cells[3, I + 1] := A.ModeNumbers;
+
+    if A.FrequencyHz.HasValue then
+      FGrid.Cells[4, I + 1] :=
+        FloatToStr(A.FrequencyHz.Value)
+    else
+      FGrid.Cells[4, I + 1] := '';
+
+    if A.GainDb.HasValue then
+      FGrid.Cells[5, I + 1] :=
+        FloatToStr(A.GainDb.Value)
+    else
+      FGrid.Cells[5, I + 1] := '';
+
+    if A.BeamwidthHorizontalDeg.HasValue then
+      FGrid.Cells[6, I + 1] :=
+        FloatToStr(A.BeamwidthHorizontalDeg.Value)
+    else
+      FGrid.Cells[6, I + 1] := '';
+
+    if A.BeamwidthVerticalDeg.HasValue then
+      FGrid.Cells[7, I + 1] :=
+        FloatToStr(A.BeamwidthVerticalDeg.Value)
+    else
+      FGrid.Cells[7, I + 1] := '';
+  end;
+end;
+
+procedure TAntennaEditor.GridDblClick(Sender: TObject);
+begin
+  EditAntenna(Sender);
+end;
+
+procedure TAntennaEditor.AddAntenna(Sender: TObject);
+var
+  A: TAntenna;
+  D: TAntennaDialog;
+begin
+  if FAntennas = nil then
+    Exit;
+
+  A := TAntenna.Create;
+  try
+    D := TAntennaDialog.Create(Self);
+    try
+      if D.Execute(A) then
+      begin
+        FAntennas.Add(A);
+        A := nil;
+        RefreshGrid;
+      end;
+    finally
+      D.Free;
+    end;
+  finally
+    A.Free;
+  end;
+end;
+
+procedure TAntennaEditor.EditAntenna(Sender: TObject);
+var
+  Index: Integer;
+  D: TAntennaDialog;
+begin
+  if FAntennas = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FAntennas.Count) then
+    Exit;
+
+  D := TAntennaDialog.Create(Self);
+  try
+    if D.Execute(FAntennas[Index]) then
+      RefreshGrid;
+  finally
+    D.Free;
+  end;
+end;
+
+procedure TAntennaEditor.DeleteAntenna(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if FAntennas = nil then
+    Exit;
+
+  Index := FGrid.Row - 1;
+
+  if (Index < 0) or (Index >= FAntennas.Count) then
+    Exit;
+
+  if MessageDlg(
+    'Удалить выбранную антенну?',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
+  FAntennas.Delete(Index);
+  RefreshGrid;
+end;
 
 end.
 
