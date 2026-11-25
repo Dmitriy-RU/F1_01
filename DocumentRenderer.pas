@@ -175,11 +175,11 @@ begin
   for Field := Low(TPrintField) to High(TPrintField) do
   begin
     PrintFieldCoordinates[Field].Page := dpFirst;
-    PrintFieldCoordinates[Field].X := 1039;
-    PrintFieldCoordinates[Field].Y := 163;
-    PrintFieldCoordinates[Field].Width := 1010;
-    PrintFieldCoordinates[Field].Height := 62;
-    PrintFieldCoordinates[Field].FontSize := 8;
+    PrintFieldCoordinates[Field].X := 0;
+    PrintFieldCoordinates[Field].Y := 0;
+    PrintFieldCoordinates[Field].Width := 0;
+    PrintFieldCoordinates[Field].Height := 0;
+    PrintFieldCoordinates[Field].FontSize := 12;
     PrintFieldCoordinates[Field].Alignment := paLeft;
   end;
 
@@ -193,36 +193,97 @@ begin
 with PrintFieldCoordinates[pfCode] do
 begin
   Page := dpFirst;
-  X := 65;
-  Y := 10;
-  Width := 80;
-  Height := 5;
-  FontSize := 8;
-  Alignment := paLeft;
+  X := 1039;
+  Y := 163;
+  Width := 1010;
+  Height := 62;
 end;
   // 1.2. Наименование РЭС
   // PrintFieldCoordinates[pfName].X := ...;
-
+with PrintFieldCoordinates[pfName] do
+begin
+  Page := dpFirst;
+  X := 1039;
+  Y := 229;
+  Width := 1010;
+  Height := 122;
+end;
   // 1.3. Тип и характер РЭС
   // PrintFieldCoordinates[pfTypeAndNature].X := ...;
+with PrintFieldCoordinates[pfTypeAndNature] do
+begin
+  Page := dpFirst;
+  X := 634;
+  Y := 375;
+  Width := 1540;
+  Height := 64;
+end;
 
   // 1.4. Место установки РЭС
   // PrintFieldCoordinates[pfInstallationLocation].X := ...;
+with PrintFieldCoordinates[pfInstallationLocation] do
+begin
+  Page := dpFirst;
+  X := 2643;
+  Y := 375;
+  Width := 704;
+  Height := 65;
+end;
 
   // 1.5. Назначение РЭС
   // PrintFieldCoordinates[pfPurpose].X := ...;
+with PrintFieldCoordinates[pfPurpose] do
+begin
+  Page := dpFirst;
+  X := 634;
+  Y := 450;
+  Width := 2475;
+  Height := 105;
+end;
 
   // 1.6. Район использования
   // PrintFieldCoordinates[pfUsageArea].X := ...;
+with PrintFieldCoordinates[pfUsageArea] do
+begin
+  Page := dpFirst;
+  X := 634;
+  Y := 562;
+  Width := 1320;
+  Height := 60;
+end;
 
   // 1.7. Пользователь РЭС
   // PrintFieldCoordinates[pfUser].X := ...;
+with PrintFieldCoordinates[pfUser] do
+begin
+  Page := dpFirst;
+  X := 2420;
+  Y := 560;
+  Width := 683;
+  Height := 59;
+end;
 
   // 1.8. Система (комплекс)
   // PrintFieldCoordinates[pfSystemName].X := ...;
+with PrintFieldCoordinates[pfSystemName] do
+begin
+  Page := dpFirst;
+  X := 990;
+  Y := 630;
+  Width := 965;
+  Height := 55;
+end;
 
   // 1.9. Регистрация в МСЭ
   // PrintFieldCoordinates[pfITURegistrationRequired].X := ...;
+with PrintFieldCoordinates[pfITURegistrationRequired] do
+begin
+  Page := dpFirst;
+  X := 2690;
+  Y := 630;
+  Width := 3100;
+  Height := 685;
+end;
 end;
 
 
@@ -293,33 +354,14 @@ begin
 
 DrawPrintField(pfCode,  Info.Code);
 DrawPrintField(pfName, Info.Name);
+DrawPrintField(pfTypeAndNature,  Info.TypeAndNature);
+DrawPrintField(pfInstallationLocation, Info.InstallationLocation);
+DrawPrintField(pfPurpose,  Info.Purpose);
+DrawPrintField(pfUsageArea, Info.UsageArea);
+DrawPrintField(pfUser,  Info.User);
+DrawPrintField(pfSystemName, Info.SystemName);
+DrawPrintField(pfITURegistrationRequired,  'Да');
 
-//    // 1.1. Шифр РЭС
-//  DrawField(55, 13.5, Info.Code);
-//
-//  // 1.2. Наименование РЭС
-//  DrawField(55, 20.0, Info.Name);
-//
-//  // 1.3. Тип и характер РЭС
-//  DrawField(50, 33.5, Info.TypeAndNature);
-//
-//  // 1.4. Место установки РЭС
-//  DrawField(235, 33.5, Info.InstallationLocation);
-//
-//  // 1.5. Назначение РЭС
-//  DrawField(50, 42.5, Info.Purpose);
-//
-//  // 1.6. Район использования
-//  DrawField(50, 53.5, Info.UsageArea);
-//
-//  // 1.7. Пользователь РЭС
-//  DrawField(210, 53.5, Info.User);
-//
-//  // 1.8. Система (комплекс)
-//  DrawField(82, 61.0, Info.SystemName);
-//
-//  // 1.9. Необходимость регистрации в МСЭ
-//  if Info.ITURegistrationRequired.HasValue then
 //  begin
 //    if Info.ITURegistrationRequired.Value then
 //      DrawField(235, 61.0, 'Да')

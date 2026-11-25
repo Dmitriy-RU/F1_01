@@ -281,10 +281,10 @@ begin
     Exit;
 
   R := Rect(
-    MmToPixels(X),
-    MmToPixels(Y),
-    MmToPixels(X + Width),
-    MmToPixels(Y + Height)
+    MmToPixels(X+5),
+    MmToPixels(Y+2),
+    MmToPixels(X+5 + Width),
+    MmToPixels(Y+ 5 + Height)
   );
 
   with FPages[Page].Canvas do
