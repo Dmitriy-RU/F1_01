@@ -5,6 +5,7 @@ interface
 
 uses
 System.Math,
+System.Variants,
 
 MainTypes,
 DocumentImage,
@@ -16,6 +17,11 @@ procedure DrawGeneralInformation(
 );
 
 procedure DrawFrequencyBands(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+
+procedure DrawSection3(
   AImage: TDocumentImage;
   const ADocument: TTechnicalDocument
 );
@@ -147,6 +153,28 @@ var
       of TFrequencyBandPrintCoordinates;
 
 
+type
+  TEquipmentModeColumn = (
+    emcModeNumber,                 // 3.5
+    emcModeDescription,            // 3.6
+    emcFrequencyBandNumber,        // 3.7
+    emcElementaryEquipmentNumber,   // 3.8
+    emcElementaryAntennaNumber,     // 3.9
+    emcRelatedAntennaNumber,       // 3.10
+    emcRelatedEquipmentName,      // 3.11
+    emcCharacteristicName,        // 3.12
+    emcCharacteristicValue,       // 3.13
+    emcCharacteristicUnit         // 3.14
+  );
+
+const
+  EQUIPMENT_MODES_VISIBLE_ROWS = 4;
+
+var
+  EquipmentModeCoordinates:
+    array[1..EQUIPMENT_MODES_VISIBLE_ROWS,
+          TEquipmentModeColumn] of TPrintRectMm;
+
 
 var
   PrintFieldCoordinates: array[TPrintField]
@@ -256,6 +284,48 @@ begin
   Width := 3100;
   Height := 685;
 end;
+
+//with PrintFieldCoordinates[XXXXXX] do
+//begin
+//  Page := dpFirst;
+//  X := XXXX;
+//  Y := YYYY;
+//  Width := WWWW;
+//  Height := XXXX;
+//end;
+with PrintFieldCoordinates[pfTransmitterReference] do
+begin
+  Page := dpFirst;
+  X := 740;
+  Y := 915;
+  Width := 350;
+  Height := 60;
+end;
+with PrintFieldCoordinates[pfReceiverReference] do
+begin
+  Page := dpFirst;
+  X := 1360;
+  Y := 915;
+  Width := 367;
+  Height := 60;
+end;
+with PrintFieldCoordinates[pfAntennaReference] do
+begin
+  Page := dpFirst;
+  X := 1905;
+  Y := 915;
+  Width := 350;
+  Height := 60;
+end;
+with PrintFieldCoordinates[pfStructuralDiagramSheet] do
+begin
+  Page := dpFirst;
+  X := 3170;
+  Y := 915;
+  Width := 180;
+  Height := 60;
+end;
+
 end;
 
 
@@ -348,28 +418,8 @@ end;
 end;
 
 
-procedure DrawGeneralInformation(
-  const ADocument: TTechnicalDocument;
-  AImage: TDocumentImage
-);
-var
-  Info: TGeneralInformation;
-
-  procedure DrawField(X, Y: Double; const Value: string);
-  begin
-    if Value.Trim <> '' then
-      AImage.DrawTextMm(
-        dpFirst,
-        X,
-        Y,
-        Value,
-        7,
-        'Arial'
-      );
-  end;
-
-
 procedure DrawPrintField(
+  AImage: TDocumentImage;
   Field: TPrintField;
   const Value: string
 );
@@ -401,6 +451,14 @@ end;
 
 
 
+procedure DrawGeneralInformation(
+  const ADocument: TTechnicalDocument;
+  AImage: TDocumentImage
+);
+var
+  Info: TGeneralInformation;
+
+
 begin
   if not Assigned(ADocument) then
     Exit;
@@ -413,22 +471,16 @@ begin
   if not Assigned(Info) then
     Exit;
 
-DrawPrintField(pfCode,  Info.Code);
-DrawPrintField(pfName, Info.Name);
-DrawPrintField(pfTypeAndNature,  Info.TypeAndNature);
-DrawPrintField(pfInstallationLocation, Info.InstallationLocation);
-DrawPrintField(pfPurpose,  Info.Purpose);
-DrawPrintField(pfUsageArea, Info.UsageArea);
-DrawPrintField(pfUser,  Info.User);
-DrawPrintField(pfSystemName, Info.SystemName);
-DrawPrintField(pfITURegistrationRequired,  'Да');
+DrawPrintField(AImage, pfCode,  Info.Code);
+DrawPrintField(AImage, pfName, Info.Name);
+DrawPrintField(AImage, pfTypeAndNature,  Info.TypeAndNature);
+DrawPrintField(AImage, pfInstallationLocation, Info.InstallationLocation);
+DrawPrintField(AImage, pfPurpose,  Info.Purpose);
+DrawPrintField(AImage, pfUsageArea, Info.UsageArea);
+DrawPrintField(AImage, pfUser,  Info.User);
+DrawPrintField(AImage, pfSystemName, Info.SystemName);
+DrawPrintField(AImage, pfITURegistrationRequired,  'Да');
 
-//  begin
-//    if Info.ITURegistrationRequired.Value then
-//      DrawField(235, 61.0, 'Да')
-//    else
-//      DrawField(235, 61.0, 'Нет');
-//  end;
 end;
 
 
@@ -543,11 +595,237 @@ begin
 end;
 
 
+procedure DrawEquipmentCompositionReferences(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+begin
+  if not Assigned(AImage) or not Assigned(ADocument) then
+    Exit;
+
+  DrawPrintField(
+    AImage,
+    pfTransmitterReference,
+    ADocument.EquipmentComposition.TransmitterReference
+  );
+
+  DrawPrintField(
+    AImage,
+    pfReceiverReference,
+    ADocument.EquipmentComposition.ReceiverReference
+  );
+
+  DrawPrintField(
+    AImage,
+    pfAntennaReference,
+    ADocument.EquipmentComposition.AntennaReference
+  );
+
+  DrawPrintField(
+    AImage,
+    pfStructuralDiagramSheet,
+    ADocument.EquipmentComposition.StructuralDiagramSheet
+  );
+end;
+
+
+
+procedure InitializeEquipmentModeCoordinates;
+var
+  Row: Integer;
+  Column: TEquipmentModeColumn;
+const
+  RowY:array[1..4] of integer =( 1215,1260, 1305, 1355);
+  RowX:array[0..10] of integer =(   150,  280, 395 , 1105, 1305, 1495, 1660 , 2155, 2905,  3136, 3950);
+begin
+  for Row := 1 to EQUIPMENT_MODES_VISIBLE_ROWS do
+    for Column := Low(TEquipmentModeColumn)
+      to High(TEquipmentModeColumn) do
+    begin
+      with EquipmentModeCoordinates[Row, Column] do
+      begin
+        X := RowX[integer(Column)];
+        Y := RowY[Row];
+        Width := RowX[integer(Column)+1]- RowX[integer(Column)];
+        Height := 45;
+      end;
+    end;
+//with EquipmentModeCoordinates[1, emcModeNumber] do
+//begin
+//  X := 0;
+//  Y := 0;
+//  Width := 0;
+//  Height := 0;
+//end;
+
+end;
+
+
+procedure DrawEquipmentModeCell(
+  AImage: TDocumentImage;
+  Row: Integer;
+  Column: TEquipmentModeColumn;
+  const Value: string;
+  FontSize: Integer = 7;
+  Alignment: TPrintAlignment = paCenter
+);
+var
+  C: TPrintRectMm;
+begin
+  if not Assigned(AImage) then
+    Exit;
+
+  if (Row < 1) or
+     (Row > EQUIPMENT_MODES_VISIBLE_ROWS) then
+    Exit;
+
+  if Value.Trim = '' then
+    Exit;
+
+  C := EquipmentModeCoordinates[Row, Column];
+
+  if (C.Width <= 0) or (C.Height <= 0) then
+    Exit;
+
+  AImage.DrawTextInRectMm(
+    dpFirst,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    FontSize,
+    Alignment
+  );
+end;
+
+
+procedure DrawEquipmentMode(
+  AImage: TDocumentImage;
+  Row: Integer;
+  const Mode: TEquipmentMode
+);
+var
+  Description: string;
+begin
+  if not Assigned(Mode) then
+    Exit;
+
+  // 3.5. Номер режима
+  DrawEquipmentModeCell(
+    AImage, Row, emcModeNumber,
+    Mode.ModeNumber
+  );
+
+  // 3.6. Краткая характеристика / тип передачи
+  Description := Mode.ModeDescription;
+
+  if Mode.TransmissionType.Trim <> '' then
+  begin
+    if Description.Trim <> '' then
+      Description := Description + sLineBreak;
+
+    Description := Description + Mode.TransmissionType;
+  end;
+
+  DrawEquipmentModeCell(
+    AImage, Row, emcModeDescription,
+    Description, 7, paCenter
+  );
+
+  // 3.7. Номер ПЛЧ
+  DrawEquipmentModeCell(
+    AImage, Row, emcFrequencyBandNumber,
+    Mode.FrequencyBandNumber
+  );
+
+  // 3.8. Номер элементарного РЭС
+  DrawEquipmentModeCell(
+    AImage, Row, emcElementaryEquipmentNumber,
+    Mode.ElementaryEquipmentNumber
+  );
+
+  // 3.9. Номер элементарной антенны
+  DrawEquipmentModeCell(
+    AImage, Row, emcElementaryAntennaNumber,
+    Mode.ElementaryAntennaNumber
+  );
+
+  // 3.10. Номер функционально связанной антенны
+  DrawEquipmentModeCell(
+    AImage, Row, emcRelatedAntennaNumber,
+    Mode.RelatedAntennaNumber
+  );
+
+  // 3.11. Имя функционально связанного РЭС
+  DrawEquipmentModeCell(
+    AImage, Row, emcRelatedEquipmentName,
+    Mode.RelatedEquipmentName
+  );
+
+  // 3.12. Наименование характеристики
+  DrawEquipmentModeCell(
+    AImage, Row, emcCharacteristicName,
+    Mode.CharacteristicName,
+    7, paLeft
+  );
+
+  // 3.13. Значение характеристики
+  DrawEquipmentModeCell(
+    AImage, Row, emcCharacteristicValue,
+    VarToStr(Mode.CharacteristicValue)
+  );
+
+  // 3.14. Размерность
+  DrawEquipmentModeCell(
+    AImage, Row, emcCharacteristicUnit,
+    Mode.CharacteristicUnit
+  );
+end;
+
+
+procedure DrawEquipmentModes(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+var
+  I: Integer;
+  Count: Integer;
+begin
+  if not Assigned(AImage) or not Assigned(ADocument) then
+    Exit;
+
+  Count := ADocument.EquipmentComposition.Modes.Count;
+
+  if Count > EQUIPMENT_MODES_VISIBLE_ROWS then
+    Count := EQUIPMENT_MODES_VISIBLE_ROWS;
+
+  for I := 0 to Count - 1 do
+    DrawEquipmentMode(
+      AImage,
+      I + 1,
+      ADocument.EquipmentComposition.Modes[I]
+    );
+end;
+
+
+procedure DrawSection3(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+begin
+  if not Assigned(AImage) or not Assigned(ADocument) then
+    Exit;
+  DrawEquipmentCompositionReferences(AImage, ADocument);
+  DrawEquipmentModes(AImage, ADocument);
+end;
+
 
 initialization
 
 InitializePrintCoordinates;
 InitializeFrequencyBandCoordinates;
+InitializeEquipmentModeCoordinates;
 
 end.
 
