@@ -33,7 +33,10 @@ procedure DrawSection5(
   AImage: TDocumentImage;
   const ADocument: TTechnicalDocument
 );
-
+procedure DrawSection6(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
 implementation
 
 uses
@@ -240,6 +243,45 @@ type
 
   TReceiverModeCoordinates =
     array of TReceiverModeRowCoordinates;
+
+
+type
+  TAntennaPrintColumn = (
+    apcAntennaNumber,
+    apcAntennaPurpose,
+    apcAntennaType,
+    apcAntennaDimensions,
+    apcModeNumbers,
+    apcBeamReference,
+    apcBeamSpatialPosition,
+    apcFrequencyHz,
+    apcGainDb,
+    apcBeamwidthHorizontalDeg,
+    apcBeamwidthVerticalDeg,
+    apcAngularSectorDeg,
+    apcSideLobeLevelDb,
+    apcPointingAccuracyDeg,
+    apcCoverageArea
+  );
+
+  TAntennaCellCoordinates = record
+    X: Double;
+    Y: Double;
+    Width: Double;
+    Height: Double;
+    FontSize: Integer;
+    Alignment: TPrintAlignment;
+  end;
+
+  TAntennaPrintRowCoordinates =
+    array[TAntennaPrintColumn] of TAntennaCellCoordinates;
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 var
   PrintFieldCoordinates: array[TPrintField]
@@ -1530,6 +1572,122 @@ begin
 end;
 
 
+var
+  AntennaPrintCoordinates: array of TAntennaPrintRowCoordinates;
+
+  procedure InitializeAntennaPrintCoordinates(RowCount: Integer);
+begin
+  SetLength(AntennaPrintCoordinates, RowCount);
+end;
+
+
+procedure DrawAntennaCell(
+  AImage: TDocumentImage;
+  Row: Integer;
+  Column: TAntennaPrintColumn;
+  const Value: string
+);
+var
+  C: TAntennaCellCoordinates;
+begin
+  if (Row < 0) or (Row >= Length(AntennaPrintCoordinates)) then
+    Exit;
+
+  C := AntennaPrintCoordinates[Row][Column];
+
+  AImage.DrawTextInRectMm(
+    dpSecond,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    C.FontSize,
+    C.Alignment,
+    'Arial'
+  );
+end;
+
+procedure DrawAntenna(
+  AImage: TDocumentImage;
+  Row: Integer;
+  Antenna: TAntenna
+);
+begin
+  DrawAntennaCell(AImage, Row, apcAntennaNumber,
+    Antenna.AntennaNumber);
+
+  DrawAntennaCell(AImage, Row, apcAntennaPurpose,
+    Antenna.AntennaPurpose);
+
+  DrawAntennaCell(AImage, Row, apcAntennaType,
+    Antenna.AntennaType);
+
+  DrawAntennaCell(AImage, Row, apcAntennaDimensions,
+    Antenna.AntennaDimensions);
+
+  DrawAntennaCell(AImage, Row, apcModeNumbers,
+    Antenna.ModeNumbers);
+
+  DrawAntennaCell(AImage, Row, apcBeamReference,
+    Antenna.BeamReference);
+
+  DrawAntennaCell(AImage, Row, apcBeamSpatialPosition,
+    Antenna.BeamSpatialPosition);
+
+  DrawAntennaCell(AImage, Row, apcFrequencyHz,
+    FormatOptionalNumber(Antenna.FrequencyHz));
+
+  DrawAntennaCell(AImage, Row, apcGainDb,
+    FormatOptionalNumber(Antenna.GainDb));
+
+  DrawAntennaCell(AImage, Row, apcBeamwidthHorizontalDeg,
+    FormatOptionalNumber(Antenna.BeamwidthHorizontalDeg));
+
+  DrawAntennaCell(AImage, Row, apcBeamwidthVerticalDeg,
+    FormatOptionalNumber(Antenna.BeamwidthVerticalDeg));
+
+  DrawAntennaCell(AImage, Row, apcAngularSectorDeg,
+    Antenna.AngularSectorDeg);
+
+  DrawAntennaCell(AImage, Row, apcSideLobeLevelDb,
+    FormatOptionalNumber(Antenna.SideLobeLevelDb));
+
+  DrawAntennaCell(AImage, Row, apcPointingAccuracyDeg,
+    FormatOptionalNumber(Antenna.PointingAccuracyDeg));
+
+  DrawAntennaCell(AImage, Row, apcCoverageArea,
+    Antenna.CoverageArea);
+end;
+
+
+procedure DrawAntennas(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+var
+  I: Integer;
+begin
+  if Document.Antennas = nil then
+    Exit;
+
+  for I := 0 to Document.Antennas.Count - 1 do
+  begin
+    if I >= Length(AntennaPrintCoordinates) then
+      Break;
+
+    DrawAntenna(AImage, I, Document.Antennas[I]);
+  end;
+end;
+
+procedure DrawSection6(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+begin
+  DrawAntennas(AImage, Document);
+end;
+
 initialization
 
 InitializePrintCoordinates;
@@ -1537,6 +1695,8 @@ InitializeFrequencyBandCoordinates;
 InitializeEquipmentModeCoordinates;
 InitializeTransmitterModeCoordinates(4);
 InitializeReceiverModeCoordinates(4);
+
+InitializeAntennaPrintCoordinates(4);
 
 end.
 
