@@ -4,6 +4,8 @@ unit DocumentRenderer;
 interface
 
 uses
+System.Math,
+
 MainTypes,
 DocumentImage,
   DataModel;
@@ -11,6 +13,11 @@ DocumentImage,
 procedure DrawGeneralInformation(
   const ADocument: TTechnicalDocument;
   AImage: TDocumentImage
+);
+
+procedure DrawFrequencyBands(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
 );
 
 implementation
@@ -111,56 +118,34 @@ type
     Alignment: TPrintAlignment;
   end;
 
-(*
-  TPrintAlignment = (
-    paLeft,
-    paCenter,
-    paRight
-  );
 
-
-  TPrintFieldCoordinates = record
+type
+  TPrintRectMm = record
     X: Double;
     Y: Double;
     Width: Double;
     Height: Double;
-    FontSize: Integer;
-    Alignment: TPrintAlignment;
   end;
 
-const
-  PrintFieldCoordinates: array[TPrintField] of TPrintFieldCoordinates = (
-    // X, Y, Width, Height, FontSize, Alignment
+  TFrequencyBandPrintCoordinates = record
+    Number: TPrintRectMm;
+    MinFrequency: TPrintRectMm;
+    MaxFrequency: TPrintRectMm;
+  end;
 
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.1 Code
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.2 Name
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.3 TypeAndNature
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.4 InstallationLocation
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.5 Purpose
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.6 UsageArea
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.7 User
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paLeft), // 1.8 SystemName
-
-    (X: 0; Y: 0; Width: 0; Height: 0;
-     FontSize: 8; Alignment: paCenter) // 1.9 ITURegistrationRequired
+  TFrequencyBandSide = (
+    fbsTransmitter,
+    fbsReceiver
   );
 
-  *)
+const
+  FREQUENCY_BANDS_PER_SIDE = 3;
+
+var
+  FrequencyBandCoordinates:
+    array[TFrequencyBandSide, 1..FREQUENCY_BANDS_PER_SIDE]
+      of TFrequencyBandPrintCoordinates;
+
 
 
 var
@@ -171,7 +156,6 @@ procedure InitializePrintCoordinates;
 var
   Field: TPrintField;
 begin
-  // Начальные настройки для всех полей
   for Field := Low(TPrintField) to High(TPrintField) do
   begin
     PrintFieldCoordinates[Field].Page := dpFirst;
@@ -182,12 +166,6 @@ begin
     PrintFieldCoordinates[Field].FontSize := 12;
     PrintFieldCoordinates[Field].Alignment := paLeft;
   end;
-
-  // Здесь будут координаты полей.
-  // Все размеры указаны в миллиметрах.
-
-  // Раздел 1. Общие сведения
-
   // 1.1. Шифр РЭС
   // PrintFieldCoordinates[pfCode].X := ...;
 with PrintFieldCoordinates[pfCode] do
@@ -218,7 +196,6 @@ begin
   Width := 1540;
   Height := 64;
 end;
-
   // 1.4. Место установки РЭС
   // PrintFieldCoordinates[pfInstallationLocation].X := ...;
 with PrintFieldCoordinates[pfInstallationLocation] do
@@ -229,7 +206,6 @@ begin
   Width := 704;
   Height := 65;
 end;
-
   // 1.5. Назначение РЭС
   // PrintFieldCoordinates[pfPurpose].X := ...;
 with PrintFieldCoordinates[pfPurpose] do
@@ -240,8 +216,7 @@ begin
   Width := 2475;
   Height := 105;
 end;
-
-  // 1.6. Район использования
+   // 1.6. Район использования
   // PrintFieldCoordinates[pfUsageArea].X := ...;
 with PrintFieldCoordinates[pfUsageArea] do
 begin
@@ -251,7 +226,6 @@ begin
   Width := 1320;
   Height := 60;
 end;
-
   // 1.7. Пользователь РЭС
   // PrintFieldCoordinates[pfUser].X := ...;
 with PrintFieldCoordinates[pfUser] do
@@ -262,8 +236,7 @@ begin
   Width := 683;
   Height := 59;
 end;
-
-  // 1.8. Система (комплекс)
+   // 1.8. Система (комплекс)
   // PrintFieldCoordinates[pfSystemName].X := ...;
 with PrintFieldCoordinates[pfSystemName] do
 begin
@@ -273,7 +246,6 @@ begin
   Width := 965;
   Height := 55;
 end;
-
   // 1.9. Регистрация в МСЭ
   // PrintFieldCoordinates[pfITURegistrationRequired].X := ...;
 with PrintFieldCoordinates[pfITURegistrationRequired] do
@@ -284,6 +256,95 @@ begin
   Width := 3100;
   Height := 685;
 end;
+end;
+
+
+
+procedure InitializeFrequencyBandCoordinates;
+var
+  Side: TFrequencyBandSide;
+  I: Integer;
+begin
+  for Side := Low(TFrequencyBandSide)
+    to High(TFrequencyBandSide) do
+  begin
+    for I := 1 to FREQUENCY_BANDS_PER_SIDE do
+    begin
+      with FrequencyBandCoordinates[Side, I] do
+      begin
+        Number.X := 0;
+        Number.Y := 0;
+        Number.Width := 0;
+        Number.Height := 0;
+
+        MinFrequency.X := 0;
+        MinFrequency.Y := 0;
+        MinFrequency.Width := 0;
+        MinFrequency.Height := 0;
+
+        MaxFrequency.X := 0;
+        MaxFrequency.Y := 0;
+        MaxFrequency.Width := 0;
+        MaxFrequency.Height := 0;
+      end;
+    end;
+  end;
+
+
+  with FrequencyBandCoordinates[fbsTransmitter, 1] do
+begin
+  Number.X := 740;
+  Number.Y := 735;
+  Number.Width := 350;
+  Number.Height := 50;
+
+  MinFrequency.X := 740;
+  MinFrequency.Y := 790;
+  MinFrequency.Width := 215;
+  MinFrequency.Height := 55;
+
+  MaxFrequency.X := 740;
+  MaxFrequency.Y := 840;
+  MaxFrequency.Width := 215;
+  MaxFrequency.Height := 55;
+end;
+
+  with FrequencyBandCoordinates[fbsTransmitter, 2] do
+begin
+  Number.X := 1090;
+  Number.Y := 735;
+  Number.Width := 350;
+  Number.Height := 50;
+
+  MinFrequency.X := 1090;
+  MinFrequency.Y := 790;
+  MinFrequency.Width := 215;
+  MinFrequency.Height := 55;
+
+  MaxFrequency.X := 1090;
+  MaxFrequency.Y := 840;
+  MaxFrequency.Width := 215;
+  MaxFrequency.Height := 55;
+end;
+
+  with FrequencyBandCoordinates[fbsReceiver, 1] do
+begin
+  Number.X := 2005;
+  Number.Y := 735;
+  Number.Width := 350;
+  Number.Height := 50;
+
+  MinFrequency.X := 2005;
+  MinFrequency.Y := 790;
+  MinFrequency.Width := 215;
+  MinFrequency.Height := 55;
+
+  MaxFrequency.X := 2005;
+  MaxFrequency.Y := 840;
+  MaxFrequency.Width := 215;
+  MaxFrequency.Height := 55;
+end;
+
 end;
 
 
@@ -370,9 +431,123 @@ DrawPrintField(pfITURegistrationRequired,  'Да');
 //  end;
 end;
 
+
+procedure DrawFrequencyBand(
+  AImage: TDocumentImage;
+  Side: TFrequencyBandSide;
+  Position: Integer;
+  const Band: TFrequencyBand
+);
+var
+  C: TFrequencyBandPrintCoordinates;
+
+function FormatFrequencyHz(
+  const Value: Double
+): string;
+begin
+  Result := FormatFloat('0.###', Value);
+end;
+
+begin
+  if not Assigned(AImage) then
+    Exit;
+
+  if not Assigned(Band) then
+    Exit;
+
+  if (Position < 1) or
+     (Position > FREQUENCY_BANDS_PER_SIDE) then
+    Exit;
+
+  C := FrequencyBandCoordinates[Side, Position];
+
+  // 2.1. Номер полосы частот
+  if C.Number.Width > 0 then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.Number.X,
+      C.Number.Y,
+      C.Number.Width,
+      C.Number.Height,
+      Band.Number,
+      7,
+      paCenter
+    );
+
+  // 2.2. Минимальная частота
+  if Band.MinFrequencyHz.HasValue and
+     (C.MinFrequency.Width > 0) then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.MinFrequency.X,
+      C.MinFrequency.Y,
+      C.MinFrequency.Width,
+      C.MinFrequency.Height,
+      FormatFrequencyHz(Band.MinFrequencyHz.Value),
+      7,
+      paCenter
+    );
+
+  // 2.3. Максимальная частота
+  if Band.MaxFrequencyHz.HasValue and
+     (C.MaxFrequency.Width > 0) then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.MaxFrequency.X,
+      C.MaxFrequency.Y,
+      C.MaxFrequency.Width,
+      C.MaxFrequency.Height,
+      FormatFrequencyHz(Band.MaxFrequencyHz.Value),
+      7,
+      paCenter
+    );
+end;
+
+
+procedure DrawFrequencyBands(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+var
+  I: Integer;
+begin
+  if not Assigned(AImage) then
+    Exit;
+
+  if not Assigned(ADocument) then
+    Exit;
+
+  // Левая таблица — ПРД
+  for I := 0 to Min(
+    ADocument.TransmitterFrequencyBands.Count,
+    FREQUENCY_BANDS_PER_SIDE
+  ) - 1 do
+    DrawFrequencyBand(
+      AImage,
+      fbsTransmitter,
+      I + 1,
+      ADocument.TransmitterFrequencyBands[I]
+    );
+
+  // Правая таблица — ПРМ
+  for I := 0 to Min(
+    ADocument.ReceiverFrequencyBands.Count,
+    FREQUENCY_BANDS_PER_SIDE
+  ) - 1 do
+    DrawFrequencyBand(
+      AImage,
+      fbsReceiver,
+      I + 1,
+      ADocument.ReceiverFrequencyBands[I]
+    );
+end;
+
+
+
 initialization
 
-InitializePrintCoordinates
+InitializePrintCoordinates;
+InitializeFrequencyBandCoordinates;
 
 end.
 

@@ -490,6 +490,7 @@ begin
     DocumentImage.LoadBackground(dpFirst, 'BlankPage1.png');
     DocumentImage.LoadBackground(dpSecond, 'BlankPage2.png');
     DrawGeneralInformation(FDocument, DocumentImage);
+    DrawFrequencyBands(DocumentImage, FDocument);
     DocumentImage.SaveDocumentImages('Output');
   finally
     DocumentImage.Free;
