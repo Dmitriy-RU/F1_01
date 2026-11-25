@@ -137,6 +137,7 @@
         </DCCReference>
         <DCCReference Include="DocumentImage.pas"/>
         <DCCReference Include="DocumentRenderer.pas"/>
+        <DCCReference Include="MainTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

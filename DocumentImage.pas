@@ -5,6 +5,7 @@ interface
 
 uses
 DataModel,
+MainTypes,
   System.SysUtils,
   System.Classes,
   System.Types,
@@ -60,6 +61,17 @@ type
     procedure SaveDocumentImages(
       const Directory: string
     );
+
+
+procedure DrawTextInRectMm(
+  Page: TDocumentPage;
+  X, Y, Width, Height: Double;
+  const Text: string;
+  FontSize: Integer = 8;
+  Alignment: TPrintAlignment = paLeft;
+  const FontName: string = 'Arial'
+);
+
   end;
 
 implementation
@@ -106,7 +118,8 @@ function TDocumentImage.MmToPixels(
   const Value: Double
 ): Integer;
 begin
-  Result := Round(Value * DOCUMENT_DPI / 25.4);
+//  Result := Round(Value * DOCUMENT_DPI / 25.4);
+  Result := Round(Value);
 end;
 
 procedure TDocumentImage.ClearPage(Page: TDocumentPage);
@@ -246,6 +259,64 @@ Doc.LoadBackground(dpSecond, 'BlankPage2.png');
     Doc.SaveDocumentImages(BasePath + 'Output');
   finally
     Doc.Free;
+  end;
+end;
+
+
+procedure TDocumentImage.DrawTextInRectMm(
+  Page: TDocumentPage;
+  X, Y, Width, Height: Double;
+  const Text: string;
+  FontSize: Integer;
+  Alignment: TPrintAlignment;
+  const FontName: string
+);
+var
+  R: TRect;
+  Flags: Cardinal;
+begin
+  CheckPage(Page);
+
+  if Text.Trim = '' then
+    Exit;
+
+  R := Rect(
+    MmToPixels(X),
+    MmToPixels(Y),
+    MmToPixels(X + Width),
+    MmToPixels(Y + Height)
+  );
+
+  with FPages[Page].Canvas do
+  begin
+    Font.Name := FontName;
+    Font.Size := FontSize;
+    Font.PixelsPerInch := DOCUMENT_DPI;
+    Font.Color := clBlack;
+    Font.Style := [];
+
+    Brush.Style := bsClear;
+
+    Flags := DT_WORDBREAK or DT_NOPREFIX or DT_EDITCONTROL;
+
+    case Alignment of
+      paLeft:
+        Flags := Flags or DT_LEFT;
+
+      paCenter:
+        Flags := Flags or DT_CENTER;
+
+      paRight:
+        Flags := Flags or DT_RIGHT;
+    end;
+
+    Winapi.Windows.DrawText(
+      Handle,
+      PChar(Text),
+      Length(Text),
+      R,
+      Flags
+    );
   end;
 end;
 
