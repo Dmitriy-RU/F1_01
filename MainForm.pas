@@ -492,6 +492,7 @@ begin
     DrawGeneralInformation(FDocument, DocumentImage);
     DrawFrequencyBands(DocumentImage, FDocument);
     DrawSection3(DocumentImage, FDocument);
+    DrawSection4(DocumentImage, FDocument);
 ///
     DocumentImage.SaveDocumentImages('Output');
   finally

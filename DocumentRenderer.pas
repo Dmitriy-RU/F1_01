@@ -25,6 +25,10 @@ procedure DrawSection3(
   AImage: TDocumentImage;
   const ADocument: TTechnicalDocument
 );
+procedure DrawSection4(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
 
 implementation
 
@@ -174,6 +178,38 @@ var
   EquipmentModeCoordinates:
     array[1..EQUIPMENT_MODES_VISIBLE_ROWS,
           TEquipmentModeColumn] of TPrintRectMm;
+
+
+type
+  TTransmitterModeColumn = (
+    tmcEmissionClass,                  // 4.4
+    tmcEmissionClassDescription,       // 4.5
+    tmcFrequencyBandNumber,            // 4.6
+    tmcBandwidthAt3DbHz,               // 4.7
+    tmcBandwidthAt30DbHz,              // 4.8
+    tmcBandwidthAdditionalLevelDb,     // 4.9
+    tmcPowerEmissionKind,              // 4.10
+    tmcMinPowerDbW,                    // 4.11
+    tmcMaxPowerDbW,                    // 4.12
+    tmcMaxPowerSpectralDensityDbWHz    // 4.13
+  );
+
+  TModulationParameterColumn = (
+    mpcName,
+    mpcValue,
+    mpcUnitName
+  );
+
+  TTransmitterModeRowCoordinates = record
+    Cells: array[TTransmitterModeColumn] of TPrintRectMm;
+    ModulationParameters:
+      array[TModulationParameterColumn] of TPrintRectMm;
+  end;
+
+  TTransmitterModeCoordinates =
+    array of TTransmitterModeRowCoordinates;
+
+
 
 
 var
@@ -818,6 +854,365 @@ begin
     Exit;
   DrawEquipmentCompositionReferences(AImage, ADocument);
   DrawEquipmentModes(AImage, ADocument);
+end;
+
+
+
+var
+  TransmitterModeCoordinates: TTransmitterModeCoordinates;
+
+  procedure InitializeTransmitterModeCoordinates(
+  RowCount: Integer
+);
+var
+  Row: Integer;
+  Column: TTransmitterModeColumn;
+  ModulationColumn: TModulationParameterColumn;
+begin
+  if RowCount < 0 then
+    RowCount := 0;
+
+  SetLength(TransmitterModeCoordinates, RowCount);
+
+  for Row := 0 to RowCount - 1 do
+  begin
+    for Column := Low(TTransmitterModeColumn)
+      to High(TTransmitterModeColumn) do
+    begin
+      with TransmitterModeCoordinates[Row].Cells[Column] do
+      begin
+        X := 0;
+        Y := 0;
+        Width := 0;
+        Height := 0;
+      end;
+    end;
+
+    for ModulationColumn := Low(TModulationParameterColumn)
+      to High(TModulationParameterColumn) do
+    begin
+      with TransmitterModeCoordinates[Row]
+        .ModulationParameters[ModulationColumn] do
+      begin
+        X := 0;
+        Y := 0;
+        Width := 0;
+        Height := 0;
+      end;
+    end;
+  end;
+end;
+
+
+procedure DrawTransmitterModeCell(
+  AImage: TDocumentImage;
+  Row: Integer;
+  Column: TTransmitterModeColumn;
+  const Value: string;
+  FontSize: Integer = 7;
+  Alignment: TPrintAlignment = paCenter
+);
+var
+  C: TPrintRectMm;
+begin
+  if not Assigned(AImage) then
+    Exit;
+
+  if (Row < 1) or
+     (Row > Length(TransmitterModeCoordinates)) then
+    Exit;
+
+  if Value.Trim = '' then
+    Exit;
+
+  C := TransmitterModeCoordinates[Row - 1].Cells[Column];
+
+  if (C.Width <= 0) or (C.Height <= 0) then
+    Exit;
+
+  AImage.DrawTextInRectMm(
+    dpFirst,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    FontSize,
+    Alignment
+  );
+end;
+
+
+
+procedure DrawModulationParameter(
+  AImage: TDocumentImage;
+  Row: Integer;
+  const Parameter: TModulationParameter
+);
+var
+  C: TTransmitterModeRowCoordinates;
+begin
+  if not Assigned(AImage) or not Assigned(Parameter) then
+    Exit;
+
+  if (Row < 1) or
+     (Row > Length(TransmitterModeCoordinates)) then
+    Exit;
+
+  C := TransmitterModeCoordinates[Row - 1];
+
+  if C.ModulationParameters[mpcName].Width > 0 then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.ModulationParameters[mpcName].X,
+      C.ModulationParameters[mpcName].Y,
+      C.ModulationParameters[mpcName].Width,
+      C.ModulationParameters[mpcName].Height,
+      Parameter.Name,
+      7,
+      paLeft
+    );
+
+  if C.ModulationParameters[mpcValue].Width > 0 then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.ModulationParameters[mpcValue].X,
+      C.ModulationParameters[mpcValue].Y,
+      C.ModulationParameters[mpcValue].Width,
+      C.ModulationParameters[mpcValue].Height,
+      Parameter.Value,
+      7,
+      paCenter
+    );
+
+  if C.ModulationParameters[mpcUnitName].Width > 0 then
+    AImage.DrawTextInRectMm(
+      dpFirst,
+      C.ModulationParameters[mpcUnitName].X,
+      C.ModulationParameters[mpcUnitName].Y,
+      C.ModulationParameters[mpcUnitName].Width,
+      C.ModulationParameters[mpcUnitName].Height,
+      Parameter.UnitName,
+      7,
+      paCenter
+    );
+end;
+
+
+function FormatOptionalNumber(
+  const Value: TOptionalValue<Double>
+): string;
+begin
+  Result := '';
+
+  if Value.HasValue then
+    Result := FormatFloat('0.###', Value.Value);
+end;
+
+procedure DrawTransmitterMode(
+  AImage: TDocumentImage;
+  Row: Integer;
+  const Mode: TTransmitterMode
+);
+var
+  I: Integer;
+  Parameter: TModulationParameter;
+
+begin
+  if not Assigned(AImage) or not Assigned(Mode) then
+    Exit;
+
+  // 4.4
+  DrawTransmitterModeCell(
+    AImage, Row, tmcEmissionClass,
+    Mode.EmissionClass
+  );
+
+  // 4.5
+  DrawTransmitterModeCell(
+    AImage, Row, tmcEmissionClassDescription,
+    Mode.EmissionClassDescription,
+    7, paLeft
+  );
+
+  // 4.6
+  DrawTransmitterModeCell(
+    AImage, Row, tmcFrequencyBandNumber,
+    Mode.FrequencyBandNumber
+  );
+
+  // 4.7
+  DrawTransmitterModeCell(
+    AImage, Row, tmcBandwidthAt3DbHz,
+    FormatOptionalNumber(Mode.BandwidthAt3DbHz)
+  );
+
+  // 4.8
+  DrawTransmitterModeCell(
+    AImage, Row, tmcBandwidthAt30DbHz,
+    FormatOptionalNumber(Mode.BandwidthAt30DbHz)
+  );
+
+  // 4.9
+  DrawTransmitterModeCell(
+    AImage, Row, tmcBandwidthAdditionalLevelDb,
+    FormatOptionalNumber(Mode.BandwidthAdditionalLevelDb)
+  );
+
+  // 4.10
+  DrawTransmitterModeCell(
+    AImage, Row, tmcPowerEmissionKind,
+    Mode.PowerEmissionKind
+  );
+
+  // 4.11
+  DrawTransmitterModeCell(
+    AImage, Row, tmcMinPowerDbW,
+    FormatOptionalNumber(Mode.MinPowerDbW)
+  );
+
+  // 4.12
+  DrawTransmitterModeCell(
+    AImage, Row, tmcMaxPowerDbW,
+    FormatOptionalNumber(Mode.MaxPowerDbW)
+  );
+
+  // 4.13
+  DrawTransmitterModeCell(
+    AImage, Row, tmcMaxPowerSpectralDensityDbWHz,
+    FormatOptionalNumber(Mode.MaxPowerSpectralDensityDbWHz)
+  );
+
+  // 4.14. Параметры модуляции
+  for I := 0 to Mode.ModulationParameters.Count - 1 do
+  begin
+    Parameter := Mode.ModulationParameters[I];
+
+    DrawModulationParameter(
+      AImage,
+      Row,
+      Parameter
+    );
+  end;
+end;
+
+
+procedure DrawTransmitterFixedFields(
+  AImage: TDocumentImage;
+  const Transmitter: TTransmitter
+);
+begin
+  if not Assigned(AImage) or not Assigned(Transmitter) then
+    Exit;
+
+  // 4.1
+  DrawPrintField(
+    AImage,
+    pfTransmitterOperatingFrequencies,
+    Transmitter.OperatingFrequencies
+  );
+
+  // 4.2
+  DrawPrintField(
+    AImage,
+    pfTransmitterFrequencyGridStep,
+    Transmitter.FrequencyGridStep
+  );
+
+  // 4.3
+  DrawPrintField(
+    AImage,
+    pfTransmitterFrequencyTuningType,
+    Transmitter.FrequencyTuningType
+  );
+
+  // 4.15
+  DrawPrintField(
+    AImage,
+    pfTransmitterOutputDeviceType,
+    Transmitter.OutputDeviceType
+  );
+
+  // 4.16
+  DrawPrintField(
+    AImage,
+    pfTransmitterRelativeFrequencyInstability,
+    Transmitter.RelativeFrequencyInstability
+  );
+
+  // 4.17
+  DrawPrintField(
+    AImage,
+    pfTransmitterHarmonicsBelow3FpDb,
+    FormatOptionalNumber(Transmitter.HarmonicsBelow3FpDb)
+  );
+
+  // 4.18
+  DrawPrintField(
+    AImage,
+    pfTransmitterHarmonicsAbove3FpDb,
+    FormatOptionalNumber(Transmitter.HarmonicsAbove3FpDb)
+  );
+
+  // 4.19
+  DrawPrintField(
+    AImage,
+    pfTransmitterOtherSpuriousEmissions,
+    Transmitter.OtherSpuriousEmissions
+  );
+
+  // 4.20
+  DrawPrintField(
+    AImage,
+    pfTransmitterNoiseEmissionLevel,
+    FormatOptionalNumber(Transmitter.NoiseEmissionLevel)
+  );
+end;
+
+
+
+procedure DrawTransmitterModes(
+  AImage: TDocumentImage;
+  const Transmitter: TTransmitter
+);
+var
+  I: Integer;
+begin
+  if not Assigned(AImage) or not Assigned(Transmitter) then
+    Exit;
+
+  for I := 0 to Transmitter.Modes.Count - 1 do
+  begin
+    if I >= Length(TransmitterModeCoordinates) then
+      Break;
+
+    DrawTransmitterMode(
+      AImage,
+      I + 1,
+      Transmitter.Modes[I]
+    );
+  end;
+end;
+
+
+
+procedure DrawSection4(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+begin
+  if not Assigned(AImage) or not Assigned(ADocument) then
+    Exit;
+
+  DrawTransmitterFixedFields(
+    AImage,
+    ADocument.Transmitter
+  );
+
+  DrawTransmitterModes(
+    AImage,
+    ADocument.Transmitter
+  );
 end;
 
 
