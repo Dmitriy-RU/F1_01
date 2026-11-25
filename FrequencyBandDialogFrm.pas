@@ -1,4 +1,4 @@
-unit FrequencyBandDialogFrm;
+п»їunit FrequencyBandDialogFrm;
 
 interface
 
@@ -41,7 +41,7 @@ var
 begin
   inherited Create(AOwner);
 
-  Caption := 'Полоса частот';
+  Caption := 'РџРѕР»РѕСЃР° С‡Р°СЃС‚РѕС‚';
   BorderStyle := bsDialog;
   Position := poOwnerFormCenter;
   ClientWidth := 430;
@@ -49,7 +49,7 @@ begin
 
   L := TLabel.Create(Self);
   L.Parent := Self;
-  L.Caption := 'Номер полосы';
+  L.Caption := 'РќРѕРјРµСЂ РїРѕР»РѕСЃС‹';
   L.SetBounds(16, 16, 180, 18);
 
   FNumberEdit := TEdit.Create(Self);
@@ -58,7 +58,7 @@ begin
 
   L := TLabel.Create(Self);
   L.Parent := Self;
-  L.Caption := 'Нижняя граница, МГц';
+  L.Caption := 'РќРёР¶РЅСЏСЏ РіСЂР°РЅРёС†Р°, РњР“С†';
   L.SetBounds(16, 76, 180, 18);
 
   FMinFrequencyEdit := TEdit.Create(Self);
@@ -67,7 +67,7 @@ begin
 
   L := TLabel.Create(Self);
   L.Parent := Self;
-  L.Caption := 'Верхняя граница, МГц';
+  L.Caption := 'Р’РµСЂС…РЅСЏСЏ РіСЂР°РЅРёС†Р°, РњР“С†';
   L.SetBounds(216, 76, 190, 18);
 
   FMaxFrequencyEdit := TEdit.Create(Self);
@@ -83,7 +83,7 @@ begin
 
   B := TButton.Create(Self);
   B.Parent := Self;
-  B.Caption := 'Отмена';
+  B.Caption := 'РћС‚РјРµРЅР°';
   B.ModalResult := mrCancel;
   B.SetBounds(326, 166, 80, 30);
   B.Cancel := True;
@@ -150,7 +150,7 @@ begin
     if Trim(FNumberEdit.Text) = '' then
     begin
       MessageDlg(
-        'Укажите номер полосы частот.',
+        'РЈРєР°Р¶РёС‚Рµ РЅРѕРјРµСЂ РїРѕР»РѕСЃС‹ С‡Р°СЃС‚РѕС‚.',
         mtWarning, [mbOK], 0
       );
       Continue;
@@ -159,7 +159,7 @@ begin
     if not TryReadFrequency(FMinFrequencyEdit.Text, MinValue) then
     begin
       MessageDlg(
-        'Некорректная нижняя граница частоты.',
+        'РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ РЅРёР¶РЅСЏСЏ РіСЂР°РЅРёС†Р° С‡Р°СЃС‚РѕС‚С‹.',
         mtWarning, [mbOK], 0
       );
       Continue;
@@ -168,7 +168,7 @@ begin
     if not TryReadFrequency(FMaxFrequencyEdit.Text, MaxValue) then
     begin
       MessageDlg(
-        'Некорректная верхняя граница частоты.',
+        'РќРµРєРѕСЂСЂРµРєС‚РЅР°СЏ РІРµСЂС…РЅСЏСЏ РіСЂР°РЅРёС†Р° С‡Р°СЃС‚РѕС‚С‹.',
         mtWarning, [mbOK], 0
       );
       Continue;
@@ -178,7 +178,7 @@ begin
        (MinValue.Value > MaxValue.Value) then
     begin
       MessageDlg(
-        'Нижняя граница не может быть больше верхней.',
+        'РќРёР¶РЅСЏСЏ РіСЂР°РЅРёС†Р° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РІРµСЂС…РЅРµР№.',
         mtWarning, [mbOK], 0
       );
       Continue;

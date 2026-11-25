@@ -27,9 +27,8 @@ type
   TMainForm = class(TForm)
     Timer1: TTimer;
     procedure FormDestroy(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
-//    procedure GenerateDocumentImages;
+    procedure FormCreate(Sender: TObject);
   private
     FDocument: TTechnicalDocument;
     FCurrentFileName: string;
@@ -106,7 +105,6 @@ begin
   UpdateCaption;
   UpdateStatus;
 
-  //////////////////// !!!
   FGeneralEditor.Bind(FDocument.GeneralInformation);
 FFrequencyBandsEditor.Bind(
   FDocument.TransmitterFrequencyBands,
@@ -127,17 +125,39 @@ FOrganizationsEditor.Bind(
   FDocument.Manufacturer
 );
 
-  ///////////////
-
 end;
 
-procedure TMainForm.FormShow(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 begin
-end;
+   Timer1.Enabled:=false;
+  FDocument := TTechnicalDocument.Create;
 
-// ------------------------------------------------------------
-// Освобождение ресурсов
-// ------------------------------------------------------------
+  FCurrentFileName := '';
+
+  CreateInterface;
+
+  UpdateCaption;
+  UpdateStatus;
+
+  FGeneralEditor.Bind(FDocument.GeneralInformation);
+FFrequencyBandsEditor.Bind(
+  FDocument.TransmitterFrequencyBands,
+  FDocument.ReceiverFrequencyBands
+);
+FEquipmentCompositionEditor.Bind(
+  FDocument.EquipmentComposition
+);
+FTransmitterEditor.Bind(FDocument.Transmitter);
+FReceiverEditor.Bind(FDocument.Receiver);
+FAntennaEditor.Bind(FDocument.Antennas);
+FFeederEditor.Bind(FDocument.Feeder);
+FEmcEditor.Bind(FDocument.EmcInformation);
+
+FOrganizationsEditor.Bind(
+  FDocument.Customer,
+  FDocument.Developer,
+  FDocument.Manufacturer   );
+end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
@@ -152,8 +172,8 @@ procedure TMainForm.CreateInterface;
 begin
   Caption := 'КТТД — Тактико-технические данные';
 
-  Width := 1100;
-  Height := 750;
+  Width := 1700;
+  Height := 1000;
 
   Position := poScreenCenter;
 
@@ -234,15 +254,15 @@ end;
 procedure TMainForm.CreateTabs;
 const
   TAB_NAMES: array[0..8] of string = (
-    'Общие сведения',
-    'Полосы частот',
-    'Состав и ТТХ',
-    'Передатчик',
-    'Приёмник',
-    'Антенны',
-    'Фидер',
-    'ЭМС',
-    'Организации'
+    '1. Общие сведения',
+    '2. Полосы частот',
+    '3. Состав и ТТХ',
+    '4. Передатчик',
+    '5. Приёмник',
+    '6. Антенны',
+    '7. Фидер',
+    '8. ЭМС',
+    '9. Организации'
   );
 var
   I: Integer;

@@ -10,10 +10,11 @@ object MainForm: TMainForm
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
+  OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnShow = FormShow
   TextHeight = 15
   object Timer1: TTimer
+    Enabled = False
     OnTimer = Timer1Timer
     Left = 272
     Top = 168
