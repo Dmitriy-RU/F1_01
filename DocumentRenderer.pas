@@ -210,6 +210,30 @@ type
     array of TTransmitterModeRowCoordinates;
 
 
+type
+  TReceiverModeColumn = (
+    rmcAcceptedEmissionClasses,       // 5.4
+    rmcFrequencyBandNumber,           // 5.5
+    rmcSensitivityThresholdDb,        // 5.6
+    rmcSensitivityRealDb,             // 5.7
+    rmcInterferenceProtectionRatioDb, // 5.8
+    rmcInterferenceType,              // 5.9
+    rmcUhfBandwidthAt3DbHz,           // 5.10
+    rmcUhfBandwidthAt30DbHz,          // 5.11
+    rmcUhfBandwidthAdditionalLevelDb, // 5.12
+    rmcHeterodyneTuningNumberAndType, // 5.13
+    rmcIntermediateFrequencyHz,       // 5.14
+    rmcIfBandwidthAt3DbHz,            // 5.15
+    rmcIfBandwidthAt30DbHz,           // 5.16
+    rmcIfBandwidthAdditionalLevelDb   // 5.17
+  );
+
+  TReceiverModeRowCoordinates = record
+    Cells: array[TReceiverModeColumn] of TPrintRectMm;
+  end;
+
+  TReceiverModeCoordinates = array of TReceiverModeRowCoordinates;
+
 
 
 var
@@ -1215,12 +1239,195 @@ begin
   );
 end;
 
+var
+  ReceiverModeCoordinates: TReceiverModeCoordinates;
+
+
+procedure InitializeReceiverModeCoordinates(RowCount: Integer);
+var
+  Row: Integer;
+  Column: TReceiverModeColumn;
+begin
+  if RowCount < 0 then
+    RowCount := 0;
+
+  SetLength(ReceiverModeCoordinates, RowCount);
+
+  for Row := 0 to RowCount - 1 do
+    for Column := Low(TReceiverModeColumn)
+      to High(TReceiverModeColumn) do
+      with ReceiverModeCoordinates[Row].Cells[Column] do
+      begin
+        X := 0;
+        Y := 0;
+        Width := 0;
+        Height := 0;
+      end;
+end;
+
+
+
+procedure DrawReceiverModeCell(
+  AImage: TDocumentImage;
+  Row: Integer;
+  Column: TReceiverModeColumn;
+  const Value: string;
+  FontSize: Integer = 7;
+  Alignment: TPrintAlignment = paCenter
+);
+var
+  C: TPrintRectMm;
+begin
+  if not Assigned(AImage) then
+    Exit;
+
+  if (Row < 1) or
+     (Row > Length(ReceiverModeCoordinates)) then
+    Exit;
+
+  if Value.Trim = '' then
+    Exit;
+
+  C := ReceiverModeCoordinates[Row - 1].Cells[Column];
+
+  if (C.Width <= 0) or (C.Height <= 0) then
+    Exit;
+
+  AImage.DrawTextInRectMm(
+    dpSecond,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    FontSize,
+    Alignment
+  );
+end;
+
+
+
+procedure DrawReceiverFixedFields(
+  AImage: TDocumentImage;
+  const Receiver: TReceiver
+);
+begin
+  if not Assigned(AImage) or not Assigned(Receiver) then
+    Exit;
+
+  // 5.1
+  DrawPrintField(
+    AImage,
+    pfReceiverType,
+    Receiver.ReceiverType
+  );
+
+  // 5.2
+  DrawPrintField(
+    AImage,
+    pfReceiverOperatingFrequencies,
+    Receiver.OperatingFrequencies
+  );
+
+  // 5.3
+  DrawPrintField(
+    AImage,
+    pfReceiverFrequencyGridStep,
+    Receiver.FrequencyGridStep
+  );
+
+  // 5.18
+  DrawPrintField(
+    AImage,
+    pfReceiverHeterodyneFrequencyInstability,
+    Receiver.HeterodyneFrequencyInstability
+  );
+
+  // 5.19
+  DrawPrintField(
+    AImage,
+    pfReceiverAdjacentChannelSelectivityDb,
+    FormatOptionalNumber(Receiver.AdjacentChannelSelectivityDb)
+  );
+
+  // 5.20
+  DrawPrintField(
+    AImage,
+    pfReceiverImageChannelSelectivityDb,
+    FormatOptionalNumber(Receiver.ImageChannelSelectivityDb)
+  );
+
+  // 5.21
+  DrawPrintField(
+    AImage,
+    pfReceiverOtherSpuriousResponseSelectivityDb,
+    FormatOptionalNumber(Receiver.OtherSpuriousResponseSelectivityDb)
+  );
+
+  // 5.22
+  DrawPrintField(
+    AImage,
+    pfReceiverBlockingAndCrossModulationDb,
+    FormatOptionalNumber(Receiver.BlockingAndCrossModulationDb)
+  );
+
+  // 5.23
+  DrawPrintField(
+    AImage,
+    pfReceiverIntermodulationSelectivityDb,
+    FormatOptionalNumber(Receiver.IntermodulationSelectivityDb)
+  );
+
+  // 5.24
+  DrawPrintField(
+    AImage,
+    pfReceiverEquivalentNoiseTemperatureK,
+    FormatOptionalNumber(Receiver.EquivalentNoiseTemperatureK)
+  );
+
+  // 5.25
+  DrawPrintField(
+    AImage,
+    pfReceiverMaxNoiseTemperatureIncreasePercent,
+    FormatOptionalNumber(Receiver.MaxNoiseTemperatureIncreasePercent)
+  );
+end;
+
+
+
+type
+  TReceiverModeValues = array[TReceiverModeColumn] of string;
+
+procedure DrawReceiverMode(
+  AImage: TDocumentImage;
+  Row: Integer;
+  const Values: TReceiverModeValues
+);
+var
+  Column: TReceiverModeColumn;
+begin
+  for Column := Low(TReceiverModeColumn)
+    to High(TReceiverModeColumn) do
+  begin
+    DrawReceiverModeCell(
+      AImage,
+      Row,
+      Column,
+      Values[Column],
+      7,
+      paCenter
+    );
+  end;
+end;
+
 
 initialization
 
 InitializePrintCoordinates;
 InitializeFrequencyBandCoordinates;
 InitializeEquipmentModeCoordinates;
+InitializeTransmitterModeCoordinates(4);
+InitializeReceiverModeCoordinates(4);
 
 end.
 
