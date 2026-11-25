@@ -37,6 +37,15 @@ procedure DrawSection6(
   AImage: TDocumentImage;
   Document: TTechnicalDocument
 );
+procedure DrawSection7(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+procedure DrawSection8(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+
 implementation
 
 uses
@@ -276,6 +285,40 @@ type
   TAntennaPrintRowCoordinates =
     array[TAntennaPrintColumn] of TAntennaCellCoordinates;
 
+ type
+  TFeederPrintField = (
+    fpfFeederType,                     // 7.1
+    fpfCriticalFrequency,              // 7.2
+    fpfWaveImpedance,                  // 7.3
+    fpfAttenuationReceiveDb,           // 7.4
+    fpfAttenuationTransmitDb,          // 7.5
+    fpfPolarizationCharacteristics     // 7.6
+  );
+
+  TFeederPrintCoordinates = record
+    Page: TDocumentPage;
+    X: Double;
+    Y: Double;
+    Width: Double;
+    Height: Double;
+    FontSize: Integer;
+    Alignment: TPrintAlignment;
+  end;
+
+type
+  TEmcPrintField = (
+    epfEmcMeasures
+  );
+
+  TEmcPrintCoordinates = record
+    Page: TDocumentPage;
+    X: Double;
+    Y: Double;
+    Width: Double;
+    Height: Double;
+    FontSize: Integer;
+    Alignment: TPrintAlignment;
+  end;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1688,6 +1731,157 @@ begin
   DrawAntennas(AImage, Document);
 end;
 
+var
+  FeederPrintCoordinates:
+    array[TFeederPrintField] of TFeederPrintCoordinates;
+
+procedure InitializeFeederPrintCoordinates;
+begin
+  // 7.1
+  FeederPrintCoordinates[fpfFeederType].Page := dpSecond;
+
+  // 7.2
+  FeederPrintCoordinates[fpfCriticalFrequency].Page := dpSecond;
+
+  // 7.3
+  FeederPrintCoordinates[fpfWaveImpedance].Page := dpSecond;
+
+  // 7.4
+  FeederPrintCoordinates[fpfAttenuationReceiveDb].Page := dpSecond;
+
+  // 7.5
+  FeederPrintCoordinates[fpfAttenuationTransmitDb].Page := dpSecond;
+
+  // 7.6
+  FeederPrintCoordinates[fpfPolarizationCharacteristics].Page := dpSecond;
+end;
+
+
+procedure DrawFeederField(
+  AImage: TDocumentImage;
+  Field: TFeederPrintField;
+  const Value: string
+);
+var
+  C: TFeederPrintCoordinates;
+begin
+  C := FeederPrintCoordinates[Field];
+
+  AImage.DrawTextInRectMm(
+    C.Page,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    C.FontSize,
+    C.Alignment,
+    'Arial'
+  );
+end;
+
+procedure DrawSection7(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+begin
+  if Document.Feeder = nil then
+    Exit;
+
+  DrawFeederField(
+    AImage,
+    fpfFeederType,
+    Document.Feeder.FeederType
+  );
+
+  DrawFeederField(
+    AImage,
+    fpfCriticalFrequency,
+    Document.Feeder.CriticalFrequency
+  );
+
+  DrawFeederField(
+    AImage,
+    fpfWaveImpedance,
+    Document.Feeder.WaveImpedance
+  );
+
+  DrawFeederField(
+    AImage,
+    fpfAttenuationReceiveDb,
+    FormatOptionalNumber(Document.Feeder.AttenuationReceiveDb)
+  );
+
+  DrawFeederField(
+    AImage,
+    fpfAttenuationTransmitDb,
+    FormatOptionalNumber(Document.Feeder.AttenuationTransmitDb)
+  );
+
+  DrawFeederField(
+    AImage,
+    fpfPolarizationCharacteristics,
+    Document.Feeder.PolarizationCharacteristics
+  );
+end;
+
+var
+  EmcPrintCoordinates:
+    array[TEmcPrintField] of TEmcPrintCoordinates;
+
+procedure InitializeEmcPrintCoordinates;
+begin
+  EmcPrintCoordinates[epfEmcMeasures].Page := dpSecond;
+
+  EmcPrintCoordinates[epfEmcMeasures].X := 0;
+EmcPrintCoordinates[epfEmcMeasures].Y := 0;
+EmcPrintCoordinates[epfEmcMeasures].Width := 0;
+EmcPrintCoordinates[epfEmcMeasures].Height := 0;
+EmcPrintCoordinates[epfEmcMeasures].FontSize := 10;
+EmcPrintCoordinates[epfEmcMeasures].Alignment := paLeft;
+
+end;
+
+procedure DrawEmcField(
+  AImage: TDocumentImage;
+  Field: TEmcPrintField;
+  const Value: string
+);
+var
+  C: TEmcPrintCoordinates;
+begin
+  C := EmcPrintCoordinates[Field];
+
+  AImage.DrawTextInRectMm(
+    C.Page,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    C.FontSize,
+    C.Alignment,
+    'Arial'
+  );
+end;
+
+procedure DrawSection8(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+begin
+  if Document.EmcInformation = nil then
+    Exit;
+
+  DrawEmcField(
+    AImage,
+    epfEmcMeasures,
+    Document.EmcInformation.EmcMeasures
+  );
+end;
+
+
+
 initialization
 
 InitializePrintCoordinates;
@@ -1695,8 +1889,9 @@ InitializeFrequencyBandCoordinates;
 InitializeEquipmentModeCoordinates;
 InitializeTransmitterModeCoordinates(4);
 InitializeReceiverModeCoordinates(4);
-
 InitializeAntennaPrintCoordinates(4);
+InitializeFeederPrintCoordinates;
+InitializeEmcPrintCoordinates;
 
 end.
 
