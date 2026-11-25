@@ -497,6 +497,7 @@ begin
     DrawSection6(DocumentImage, FDocument);
     DrawSection7(DocumentImage, FDocument);
     DrawSection8(DocumentImage, FDocument);
+    DrawSection9(DocumentImage, FDocument);
 ///
     DocumentImage.SaveDocumentImages('Output');
   finally

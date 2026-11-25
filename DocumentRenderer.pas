@@ -45,6 +45,10 @@ procedure DrawSection8(
   AImage: TDocumentImage;
   Document: TTechnicalDocument
 );
+procedure DrawSection9(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
 
 implementation
 
@@ -320,11 +324,34 @@ type
     Alignment: TPrintAlignment;
   end;
 
+type
+  TOrganizationPrintColumn = (
+    opcCustomer,
+    opcDeveloper,
+    opcManufacturer
+  );
+
+  TOrganizationPrintRow = (
+    oprOrganizationName,
+    oprAddressAndPhone,
+    oprSignatureDetails
+  );
+
+  TOrganizationCellCoordinates = record
+    X: Double;
+    Y: Double;
+    Width: Double;
+    Height: Double;
+    FontSize: Integer;
+    Alignment: TPrintAlignment;
+  end;
+
+  TOrganizationPrintCoordinates =
+    array[TOrganizationPrintRow, TOrganizationPrintColumn]
+      of TOrganizationCellCoordinates;
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 var
   PrintFieldCoordinates: array[TPrintField]
@@ -1878,6 +1905,75 @@ begin
     epfEmcMeasures,
     Document.EmcInformation.EmcMeasures
   );
+end;
+
+var
+  OrganizationPrintCoordinates: TOrganizationPrintCoordinates;
+
+procedure DrawOrganizationCell(
+  AImage: TDocumentImage;
+  Row: TOrganizationPrintRow;
+  Column: TOrganizationPrintColumn;
+  const Value: string
+);
+var
+  C: TOrganizationCellCoordinates;
+begin
+  C := OrganizationPrintCoordinates[Row, Column];
+
+  AImage.DrawTextInRectMm(
+    dpSecond,
+    C.X,
+    C.Y,
+    C.Width,
+    C.Height,
+    Value,
+    C.FontSize,
+    C.Alignment,
+    'Arial'
+  );
+end;
+
+procedure DrawSection9(
+  AImage: TDocumentImage;
+  Document: TTechnicalDocument
+);
+begin
+  if Document.Customer <> nil then
+  begin
+    DrawOrganizationCell(AImage, oprOrganizationName,
+      opcCustomer, Document.Customer.OrganizationName);
+
+    DrawOrganizationCell(AImage, oprAddressAndPhone,
+      opcCustomer, Document.Customer.AddressAndPhone);
+
+    DrawOrganizationCell(AImage, oprSignatureDetails,
+      opcCustomer, Document.Customer.SignatureDetails);
+  end;
+
+  if Document.Developer <> nil then
+  begin
+    DrawOrganizationCell(AImage, oprOrganizationName,
+      opcDeveloper, Document.Developer.OrganizationName);
+
+    DrawOrganizationCell(AImage, oprAddressAndPhone,
+      opcDeveloper, Document.Developer.AddressAndPhone);
+
+    DrawOrganizationCell(AImage, oprSignatureDetails,
+      opcDeveloper, Document.Developer.SignatureDetails);
+  end;
+
+  if Document.Manufacturer <> nil then
+  begin
+    DrawOrganizationCell(AImage, oprOrganizationName,
+      opcManufacturer, Document.Manufacturer.OrganizationName);
+
+    DrawOrganizationCell(AImage, oprAddressAndPhone,
+      opcManufacturer, Document.Manufacturer.AddressAndPhone);
+
+    DrawOrganizationCell(AImage, oprSignatureDetails,
+      opcManufacturer, Document.Manufacturer.SignatureDetails);
+  end;
 end;
 
 
