@@ -29,6 +29,10 @@ procedure DrawSection4(
   AImage: TDocumentImage;
   const ADocument: TTechnicalDocument
 );
+procedure DrawSection5(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
 
 implementation
 
@@ -210,31 +214,32 @@ type
     array of TTransmitterModeRowCoordinates;
 
 
+
 type
   TReceiverModeColumn = (
-    rmcAcceptedEmissionClasses,       // 5.4
-    rmcFrequencyBandNumber,           // 5.5
-    rmcSensitivityThresholdDb,        // 5.6
-    rmcSensitivityRealDb,             // 5.7
-    rmcInterferenceProtectionRatioDb, // 5.8
-    rmcInterferenceType,              // 5.9
-    rmcUhfBandwidthAt3DbHz,           // 5.10
-    rmcUhfBandwidthAt30DbHz,          // 5.11
-    rmcUhfBandwidthAdditionalLevelDb, // 5.12
-    rmcHeterodyneTuningNumberAndType, // 5.13
-    rmcIntermediateFrequencyHz,       // 5.14
-    rmcIfBandwidthAt3DbHz,            // 5.15
-    rmcIfBandwidthAt30DbHz,           // 5.16
-    rmcIfBandwidthAdditionalLevelDb   // 5.17
+    rmcModeNumber,
+    rmcReceivedEmissionClasses,
+    rmcFrequencyBandNumber,
+    rmcThresholdSensitivity,
+    rmcRealSensitivity,
+    rmcProtectionRatioDb,
+    rmcInterferenceType,
+    rmcUhfBandwidthAt3DbHz,
+    rmcUhfBandwidthAt30DbHz,
+    rmcUhfBandwidthAdditionalLevelDb,
+    rmcHeterodyneTuning,
+    rmcIntermediateFrequencyHz,
+    rmcIfBandwidthAt3DbHz,
+    rmcIfBandwidthAt30DbHz,
+    rmcIfBandwidthAdditionalLevelDb
   );
 
   TReceiverModeRowCoordinates = record
     Cells: array[TReceiverModeColumn] of TPrintRectMm;
   end;
 
-  TReceiverModeCoordinates = array of TReceiverModeRowCoordinates;
-
-
+  TReceiverModeCoordinates =
+    array of TReceiverModeRowCoordinates;
 
 var
   PrintFieldCoordinates: array[TPrintField]
@@ -1307,6 +1312,103 @@ end;
 
 
 
+procedure DrawReceiverMode(
+  AImage: TDocumentImage;
+  Row: Integer;
+  const Mode: TReceiverMode
+);
+begin
+  if not Assigned(AImage) or not Assigned(Mode) then
+    Exit;
+
+  // 5.4. Номер режима — вводится пользователем
+  DrawReceiverModeCell(
+    AImage, Row, rmcModeNumber,
+    Mode.ModeNumber
+  );
+
+  // Класс принимаемого излучения
+  DrawReceiverModeCell(
+    AImage, Row, rmcReceivedEmissionClasses,
+    Mode.ReceivedEmissionClasses
+  );
+
+  // Номер полосы частот
+  DrawReceiverModeCell(
+    AImage, Row, rmcFrequencyBandNumber,
+    Mode.FrequencyBandNumber
+  );
+
+  // Чувствительность
+  DrawReceiverModeCell(
+    AImage, Row, rmcThresholdSensitivity,
+    FormatOptionalNumber(Mode.ThresholdSensitivity)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcRealSensitivity,
+    FormatOptionalNumber(Mode.RealSensitivity)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcProtectionRatioDb,
+    FormatOptionalNumber(Mode.ProtectionRatioDb)
+  );
+
+  // Вид помехи
+  DrawReceiverModeCell(
+    AImage, Row, rmcInterferenceType,
+    Mode.InterferenceType,
+    7, paLeft
+  );
+
+  // Полоса пропускания УПЧ
+  DrawReceiverModeCell(
+    AImage, Row, rmcUhfBandwidthAt3DbHz,
+    FormatOptionalNumber(Mode.UhfBandwidthAt3DbHz)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcUhfBandwidthAt30DbHz,
+    FormatOptionalNumber(Mode.UhfBandwidthAt30DbHz)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcUhfBandwidthAdditionalLevelDb,
+    FormatOptionalNumber(Mode.UhfBandwidthAdditionalLevelDb)
+  );
+
+  // Перестройка гетеродина
+  DrawReceiverModeCell(
+    AImage, Row, rmcHeterodyneTuning,
+    Mode.HeterodyneTuning,
+    7, paLeft
+  );
+
+  // Промежуточная частота
+  DrawReceiverModeCell(
+    AImage, Row, rmcIntermediateFrequencyHz,
+    FormatOptionalNumber(Mode.IntermediateFrequencyHz)
+  );
+
+  // Полоса пропускания по промежуточной частоте
+  DrawReceiverModeCell(
+    AImage, Row, rmcIfBandwidthAt3DbHz,
+    FormatOptionalNumber(Mode.IfBandwidthAt3DbHz)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcIfBandwidthAt30DbHz,
+    FormatOptionalNumber(Mode.IfBandwidthAt30DbHz)
+  );
+
+  DrawReceiverModeCell(
+    AImage, Row, rmcIfBandwidthAdditionalLevelDb,
+    FormatOptionalNumber(Mode.IfBandwidthAdditionalLevelDb)
+  );
+end;
+
+
 procedure DrawReceiverFixedFields(
   AImage: TDocumentImage;
   const Receiver: TReceiver
@@ -1317,107 +1419,114 @@ begin
 
   // 5.1
   DrawPrintField(
-    AImage,
-    pfReceiverType,
+    AImage, pfReceiverType,
     Receiver.ReceiverType
   );
 
   // 5.2
   DrawPrintField(
-    AImage,
-    pfReceiverOperatingFrequencies,
+    AImage, pfReceiverOperatingFrequencies,
     Receiver.OperatingFrequencies
   );
 
   // 5.3
   DrawPrintField(
-    AImage,
-    pfReceiverFrequencyGridStep,
+    AImage, pfReceiverFrequencyGridStep,
     Receiver.FrequencyGridStep
   );
 
   // 5.18
   DrawPrintField(
-    AImage,
-    pfReceiverHeterodyneFrequencyInstability,
+    AImage, pfReceiverHeterodyneFrequencyInstability,
     Receiver.HeterodyneFrequencyInstability
   );
 
   // 5.19
   DrawPrintField(
-    AImage,
-    pfReceiverAdjacentChannelSelectivityDb,
+    AImage, pfReceiverAdjacentChannelSelectivityDb,
     FormatOptionalNumber(Receiver.AdjacentChannelSelectivityDb)
   );
 
   // 5.20
   DrawPrintField(
-    AImage,
-    pfReceiverImageChannelSelectivityDb,
+    AImage, pfReceiverImageChannelSelectivityDb,
     FormatOptionalNumber(Receiver.ImageChannelSelectivityDb)
   );
 
   // 5.21
   DrawPrintField(
-    AImage,
-    pfReceiverOtherSpuriousResponseSelectivityDb,
+    AImage, pfReceiverOtherSpuriousResponseSelectivityDb,
     FormatOptionalNumber(Receiver.OtherSpuriousResponseSelectivityDb)
   );
 
   // 5.22
   DrawPrintField(
-    AImage,
-    pfReceiverBlockingAndCrossModulationDb,
+    AImage, pfReceiverBlockingAndCrossModulationDb,
     FormatOptionalNumber(Receiver.BlockingAndCrossModulationDb)
   );
 
   // 5.23
   DrawPrintField(
-    AImage,
-    pfReceiverIntermodulationSelectivityDb,
+    AImage, pfReceiverIntermodulationSelectivityDb,
     FormatOptionalNumber(Receiver.IntermodulationSelectivityDb)
   );
 
   // 5.24
   DrawPrintField(
-    AImage,
-    pfReceiverEquivalentNoiseTemperatureK,
+    AImage, pfReceiverEquivalentNoiseTemperatureK,
     FormatOptionalNumber(Receiver.EquivalentNoiseTemperatureK)
   );
 
   // 5.25
   DrawPrintField(
-    AImage,
-    pfReceiverMaxNoiseTemperatureIncreasePercent,
+    AImage, pfReceiverMaxNoiseTemperatureIncreasePercent,
     FormatOptionalNumber(Receiver.MaxNoiseTemperatureIncreasePercent)
   );
 end;
 
 
 
-type
-  TReceiverModeValues = array[TReceiverModeColumn] of string;
-
-procedure DrawReceiverMode(
+procedure DrawReceiverModes(
   AImage: TDocumentImage;
-  Row: Integer;
-  const Values: TReceiverModeValues
+  const Receiver: TReceiver
 );
 var
-  Column: TReceiverModeColumn;
+  I: Integer;
 begin
-  for Column := Low(TReceiverModeColumn)
-    to High(TReceiverModeColumn) do
+  if not Assigned(AImage) or not Assigned(Receiver) then
+    Exit;
+
+  for I := 0 to Receiver.Modes.Count - 1 do
   begin
-    DrawReceiverModeCell(
+    if I >= Length(ReceiverModeCoordinates) then
+      Break;
+
+    DrawReceiverMode(
       AImage,
-      Row,
-      Column,
-      Values[Column],
-      7,
-      paCenter
+      I + 1,
+      Receiver.Modes[I]
     );
   end;
+end;
+
+
+procedure DrawSection5(
+  AImage: TDocumentImage;
+  const ADocument: TTechnicalDocument
+);
+begin
+  if not Assigned(AImage) or not Assigned(ADocument) then
+    Exit;
+
+  DrawReceiverFixedFields(
+    AImage,
+    ADocument.Receiver
+  );
+
+  DrawReceiverModes(
+    AImage,
+    ADocument.Receiver
+  );
 end;
 
 
