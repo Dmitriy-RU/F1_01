@@ -4,6 +4,7 @@ unit DocumentImage;
 interface
 
 uses
+DataModel,
   System.SysUtils,
   System.Classes,
   System.Types,
@@ -62,6 +63,9 @@ type
   end;
 
 implementation
+
+uses
+  DocumentRenderer;
 
 constructor TDocumentImage.Create;
 var
@@ -238,7 +242,7 @@ begin
 
 Doc.LoadBackground(dpFirst, 'BlankPage1.png');
 Doc.LoadBackground(dpSecond, 'BlankPage2.png');
-
+//DrawGeneralInformation(Doc, Doc);
     Doc.SaveDocumentImages(BasePath + 'Output');
   finally
     Doc.Free;
@@ -247,7 +251,7 @@ end;
 
 initialization
 
-     TestDocumentImage;
+//     TestDocumentImage;
 
 end.
 

@@ -8,7 +8,8 @@ uses
   DataValidation in 'DataValidation.pas',
   EditForms in 'EditForms.pas',
   FrequencyBandDialogFrm in 'FrequencyBandDialogFrm.pas' {FrequencyBandDialog},
-  DocumentImage in 'DocumentImage.pas';
+  DocumentImage in 'DocumentImage.pas',
+  DocumentRenderer in 'DocumentRenderer.pas';
 
 {$R *.res}
 

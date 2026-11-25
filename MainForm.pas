@@ -16,6 +16,8 @@ uses
   Vcl.StdCtrls,
   Vcl.ExtCtrls,
   Vcl.ComCtrls,
+  DocumentImage,
+  DocumentRenderer,
   DataModel,
   DataStorage,
   EditForms,
@@ -27,6 +29,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+//    procedure GenerateDocumentImages;
   private
     FDocument: TTechnicalDocument;
     FCurrentFileName: string;
@@ -475,7 +478,6 @@ var
   Messages: TArray<TValidationMessage>;
 begin
   Messages := TDataValidation.Validate(FDocument);
-
   if TDataValidation.HasErrors(Messages) then
   begin
     MessageDlg(
@@ -483,10 +485,15 @@ begin
       mtError, [mbOK], 0);
     Exit;
   end;
-
-  MessageDlg(
-    'Проверка пройдена. Модуль формирования PDF будет подключён на следующем этапе.',
-    mtInformation, [mbOK], 0);
+  var DocumentImage:TDocumentImage := TDocumentImage.Create;
+  try
+    DocumentImage.LoadBackground(dpFirst, 'BlankPage1.png');
+    DocumentImage.LoadBackground(dpSecond, 'BlankPage2.png');
+    DrawGeneralInformation(FDocument, DocumentImage);
+    DocumentImage.SaveDocumentImages('Output');
+  finally
+    DocumentImage.Free;
+  end;
 end;
 
 // ------------------------------------------------------------
